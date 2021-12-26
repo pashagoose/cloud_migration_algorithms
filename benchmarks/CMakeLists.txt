@@ -1,0 +1,3 @@
+add_executable(benchmark benchmark.cpp)
+
+target_link_libraries(benchmark testenv_lib algorithms_lib)
