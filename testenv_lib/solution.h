@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+#include <stdexcept>
 #include <vector>
 
 struct VM {
@@ -9,14 +11,15 @@ struct VM {
 	long double migration_time;
 };
 
-struct Server {
-	size_t cpu;
-	size_t mem;
-	std::vector<size_t> vms; // VM ids here
-};
-
 struct VMArrangement {
 	std::vector<size_t> vm_server; // i-th element is index of i-th VM's server 
+};
+
+struct ServerSpec {
+	size_t mem;
+	size_t cpu;
+	size_t max_out;
+	size_t max_in;
 };
 
 struct Movement {
@@ -31,7 +34,7 @@ struct Problem {
 	VMArrangement start_position;
 	VMArrangement end_position;
 	std::vector<VM> vms;
-	size_t servers;
+	std::vector<ServerSpec> server_specs;
 };
 
 struct Solution {

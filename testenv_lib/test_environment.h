@@ -1,10 +1,30 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
 #include "metrics.h"
 #include "test_generator.h"
+
+class Server {
+public:
+	Server(const ServerSpec& spec, size_t id);
+
+	void ReceiveVM(const VM& vm);
+	void SendVM(const VM& vm);
+
+	void CancelReceivingVM();
+	void CancelSendingVM();
+
+private:
+	size_t free_mem_;
+	size_t free_cpu_;
+	size_t free_download_connections_;
+	size_t free_upload_connections_;
+	size_t id_;
+	ServerSpec spec_;
+};
 
 class TestEnvironment {
 public:
@@ -24,7 +44,7 @@ public:
 	void ClearMeasurements();
 
 private:
-	void CheckCorrectness();
+	void CheckCorrectness() const;
 	void CountMetrics();
 
 private:
