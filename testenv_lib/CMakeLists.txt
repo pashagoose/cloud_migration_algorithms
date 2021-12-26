@@ -1,7 +1,6 @@
 add_library(testenv_lib STATIC 
 	grader.cpp
 	metrics.cpp
-	solution.cpp
 	test_environment.cpp
 	test_generator.cpp
 )
