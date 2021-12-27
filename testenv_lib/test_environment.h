@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <map>
 #include <vector>
 
 #include "metrics.h"
@@ -17,12 +18,15 @@ public:
 	void CancelReceivingVM();
 	void CancelSendingVM();
 
+	bool HasVM(size_t vm_id);
+
 private:
 	size_t free_mem_;
 	size_t free_cpu_;
 	size_t free_download_connections_;
 	size_t free_upload_connections_;
 	size_t id_;
+	std::set<size_t> vms_;
 	ServerSpec spec_;
 };
 
