@@ -4,14 +4,12 @@
 #include <glog/logging.h>
 
 TestEnvironment::TestEnvironment(size_t seed)
-	: metrics_({
-		std::make_unique<TotalTime>(),
-		std::make_unique<TotalMemoryMigration>(),
-		std::make_unique<SumMigrationTime>()
-	})
-	, measurements_(2, std::vector<long double>())
+	: measurements_(2, std::vector<long double>())
 	, generator_(std::make_unique<RealLifeGenerator>(seed))
 {
+	metrics_.emplace_back(std::make_unique<TotalTime>());
+	metrics_.emplace_back(std::make_unique<TotalMemoryMigration>());
+	metrics_.emplace_back(std::make_unique<SumMigrationTime>());
 }
 
 Server::Server(const ServerSpec& spec, size_t id)

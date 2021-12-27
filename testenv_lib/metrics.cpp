@@ -14,7 +14,7 @@ long double TotalTime::Evaluate(const Problem&, const Solution& solution) {
 	return result;
 }
 
-long double SumMigrationTime::Evaluate(const Problem& task, const Solution& solution) {
+long double SumMigrationTime::Evaluate(const Problem&, const Solution& solution) {
 	long double result = 0;
 
 	for (const auto& movements : solution.vm_movements) {
