@@ -1,4 +1,5 @@
 #include "test_generator.h"
+#include <random>
 
 RealLifeGenerator::RealLifeGenerator(
 	size_t seed,
@@ -15,7 +16,21 @@ RealLifeGenerator::RealLifeGenerator(
 {
 }
 
-Problem Generate() {
+int RandomIntFromRange(int l, int r, std::mt19937& gen) {
+	return l + (gen() % (r - l + 1));
+}
+
+Problem RealLifeGenerator::Generate() {
+	size_t servers = RandomIntFromRange(
+		servers_quantity_min_,
+		servers_quantity_max_,
+		rnd_
+	);
+
+	Problem result;
+	result.server_specs.resize(servers);
+
 	// TODO
-	
+
+	return result;
 }
