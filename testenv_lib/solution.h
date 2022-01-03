@@ -2,6 +2,7 @@
 
 #include <set>
 #include <stdexcept>
+#include <tuple>
 #include <vector>
 
 struct VM {
@@ -39,4 +40,28 @@ struct Problem {
 
 struct Solution {
 	std::vector<std::vector<Movement>> vm_movements; // i-th vector - movements of i-th VM
+};
+
+class Server {
+public:
+	Server(const ServerSpec& spec, size_t id);
+
+	void ReceiveVM(const VM& vm);
+	void SendVM(const VM& vm);
+
+	void CancelReceivingVM();
+	void CancelSendingVM();
+
+	bool HasVM(size_t vm_id) const;
+
+	std::tuple<size_t, size_t> GetFreeSpace() const;
+
+private:
+	size_t free_mem_;
+	size_t free_cpu_;
+	size_t free_download_connections_;
+	size_t free_upload_connections_;
+	size_t id_;
+	std::set<size_t> vms_;
+	ServerSpec spec_;
 };

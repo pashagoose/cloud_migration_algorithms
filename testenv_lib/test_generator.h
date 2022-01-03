@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <random>
 #include <utility>
 
@@ -10,7 +11,7 @@ public:
 	virtual Problem Generate() = 0;
 };
 
-class RealLifeGenerator final : public ITestGenerator {
+class RealLifeGenerator final : public ITestGenerator { // TODO : checker for tests correctness
 /*
 	Not more than 15% difference between VM arrangements.
 	Most popular VMs ratios - 1:1, 1:2, 1:4 (from 1 to 64 vCPUs).

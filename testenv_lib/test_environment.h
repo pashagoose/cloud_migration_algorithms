@@ -8,28 +8,6 @@
 #include "metrics.h"
 #include "test_generator.h"
 
-class Server {
-public:
-	Server(const ServerSpec& spec, size_t id);
-
-	void ReceiveVM(const VM& vm);
-	void SendVM(const VM& vm);
-
-	void CancelReceivingVM();
-	void CancelSendingVM();
-
-	bool HasVM(size_t vm_id);
-
-private:
-	size_t free_mem_;
-	size_t free_cpu_;
-	size_t free_download_connections_;
-	size_t free_upload_connections_;
-	size_t id_;
-	std::set<size_t> vms_;
-	ServerSpec spec_;
-};
-
 class TestEnvironment {
 public:
 	TestEnvironment(size_t seed = 42);
