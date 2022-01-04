@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <optional>
 #include <random>
 #include <utility>
@@ -22,7 +23,7 @@ public:
 		size_t seed,
 		size_t diff_percentage_max = 15,
 		size_t servers_quantity_min = 100,
-		size_t servers_quantity_max = 5000,
+		size_t servers_quantity_max = 1000,
 		std::vector<std::pair<size_t, size_t>>&& ratios = {{1, 1}, {1, 2}, {1, 4}}
 	);
 

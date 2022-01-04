@@ -1,6 +1,7 @@
 #include "test_generator.h"
 
 #include <stdexcept>
+#include <glog/logging.h>
 
 RealLifeGenerator::RealLifeGenerator(
 	size_t seed,
@@ -108,87 +109,51 @@ Problem RealLifeGenerator::Generate() {
 		}
 	}
 
-	result.end_position = result.start_position;
+	std::vector<VM> vms = result.vms;
 
-	std::vector<Server> servers;
-	servers.reserve(server_count);
+	std::shuffle(vms.begin(), vms.end(), rnd_);
 
-	for (size_t i = 0; i < result.server_specs.size(); ++i) {
-		servers.emplace_back(result.server_specs[i], i);
-	}
+	size_t server_index = 0;
+	size_t freemem = result.server_specs[0].mem;
+	size_t freecpu = result.server_specs[0].cpu;
 
-	for (size_t i = 0; i < result.end_position.vm_server.size(); ++i) {
-		servers[result.end_position.vm_server[i]].ReceiveVM(result.vms[i]);
-		servers[result.end_position.vm_server[i]].CancelReceivingVM();
-	}
-
-	// Perform random movements to get ending position
-
-	auto get_steps = [&]() -> std::vector<Movement> {
-		std::vector<Movement> res;
-
-		for (const auto& vm : result.vms) {
-			for (
-				size_t server_to_migrate = 0; 
-				server_to_migrate < result.server_specs.size();
-				++server_to_migrate
-			) 
-			{
-				if (server_to_migrate == result.end_position.vm_server[vm.id]) {
-					continue;
-				}
-
-				auto [free_cpu, free_mem] = servers[server_to_migrate].GetFreeSpace();
-
-				if (vm.mem <= free_mem && vm.cpu <= free_cpu) {
-					res.push_back(Movement{
-						.from = result.end_position.vm_server[vm.id],
-						.to = server_to_migrate,
-						.start_moment = 0,
-						.duration = 0,
-						.vm_id = vm.id 
-					});
-				}
+	auto get_random_server_spec_with_enough_space = [&](size_t cpu, size_t mem) {
+		while (true) {
+			auto spec = get_random_server_spec();
+			if (spec.cpu >= cpu && spec.mem >= mem) {
+				return spec;
 			}
 		}
-
-		return res;
 	};
 
-	auto get_percentage_diff = [&]() -> double {
-		size_t same = 0;
-		for (size_t i = 0; i < result.start_position.vm_server.size(); ++i) {
-			same += (result.start_position.vm_server[i] != result.end_position.vm_server[i]);
+	for (auto& vm : vms) {
+		while (true) {
+			if (server_index == result.server_specs.size()) {
+				LOG(INFO) << "Adding new server in test generator";
+				result.server_specs.push_back(
+					get_random_server_spec_with_enough_space(vm.cpu, vm.mem)
+				);
+
+				freemem = result.server_specs[server_index].mem;
+				freecpu = result.server_specs[server_index].cpu;
+			}
+
+			if (freemem >= vm.mem && freecpu >= vm.cpu) {
+				freemem -= vm.mem;
+				freecpu -= vm.cpu;
+				result.end_position.vm_server[vm.id] = server_index;
+				break;
+			} else {
+				++server_index;
+			}
 		}
-
-		return (1.0 - static_cast<double>(same) / result.start_position.vm_server.size()) * 100;
-	};
-
-	auto perform_move = [&](const Movement& move) {
-		if (result.end_position.vm_server[move.vm_id] != move.from) {
-			throw std::runtime_error("Trying to perform wrong move");
-		}
-
-		servers[move.from].SendVM(result.vms[move.vm_id]);
-		servers[move.to].ReceiveVM(result.vms[move.vm_id]);
-		servers[move.to].CancelReceivingVM();
-		servers[move.from].CancelSendingVM();
-
-		result.end_position.vm_server[move.vm_id] = move.to;
-	};
-
-	constexpr size_t iters_count = 1000;
-	for (size_t iteration_num = 0; iteration_num <= iters_count; ++iteration_num) {
-		if (get_percentage_diff() >= diff_percentage_max_) {
-			return result;
-		}
-
-		auto possible_moves = get_steps();
-
-		auto move = possible_moves[RandomIntFromRange(0, possible_moves.size(), rnd_)];
-
-		perform_move(move);
 	}
+
+	// serves as buffer
+	result.server_specs.push_back(ServerSpec{512, 128, 1, 1}); 
+
+	// my guess is that end position is worse vm arrangement, so we swap
+	std::swap(result.start_position, result.end_position);
 
 	return result;
 }
