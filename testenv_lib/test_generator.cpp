@@ -18,6 +18,37 @@ RealLifeGenerator::RealLifeGenerator(
 {
 }
 
+void PrintVMArrangement(
+	const Problem& problem,
+	const VMArrangement& arrangement
+) {
+	std::vector<std::vector<size_t>> server_vms(problem.server_specs.size());
+
+	for (size_t i = 0; i < problem.vms.size(); ++i) {
+		server_vms[arrangement.vm_server[i]].push_back(i);
+	}
+
+	for (size_t i = 0; i < server_vms.size(); ++i) {
+		std::cerr << "Server #" << i << " vCPU: " << problem.server_specs[i].cpu
+			<< " RAM: " << problem.server_specs[i].mem << '\n';
+
+		for (auto vm_id : server_vms[i]) {
+			std::cerr << "VM #" << vm_id << " vCPU: " << problem.vms[vm_id].cpu
+				<< " RAM: " << problem.vms[vm_id].mem << '\n';
+		}
+	}
+} 
+
+void PrintTest(const Problem& problem) {
+	std::cout << "Servers quantity: " << problem.server_specs.size() << '\n';
+
+	std::cerr << "Start arrangement\n";
+	PrintVMArrangement(problem, problem.start_position);
+
+	std::cerr << "\nEnd arrangement\n";
+	PrintVMArrangement(problem, problem.end_position);
+}
+
 int RandomIntFromRange(int l, int r, std::mt19937& gen) {
 	return l + (gen() % (r - l + 1));
 }
@@ -109,6 +140,8 @@ Problem RealLifeGenerator::Generate() {
 		}
 	}
 
+	result.end_position = result.start_position;
+
 	std::vector<VM> vms = result.vms;
 
 	std::shuffle(vms.begin(), vms.end(), rnd_);
@@ -129,7 +162,6 @@ Problem RealLifeGenerator::Generate() {
 	for (auto& vm : vms) {
 		while (true) {
 			if (server_index == result.server_specs.size()) {
-				LOG(INFO) << "Adding new server in test generator";
 				result.server_specs.push_back(
 					get_random_server_spec_with_enough_space(vm.cpu, vm.mem)
 				);

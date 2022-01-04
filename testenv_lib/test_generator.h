@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iostream>
 #include <optional>
 #include <random>
 #include <utility>
@@ -11,6 +12,8 @@ class ITestGenerator {
 public:
 	virtual Problem Generate() = 0;
 };
+
+void PrintTest(const Problem& problem);
 
 class RealLifeGenerator final : public ITestGenerator { // TODO : checker for tests correctness
 /*
