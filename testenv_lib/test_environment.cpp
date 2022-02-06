@@ -30,7 +30,7 @@ void TestEnvironment::CheckCorrectness() const {
 	// Sort all moves
 
 	std::vector<Movement> movements;
-	for (const auto& vm_moves : solution_.vm_movements) {
+	for (const auto& vm_moves : solution_->vm_movements) {
 		long double prev_move_time = 0;
 		for (const auto& move : vm_moves) {
 			if (move.start_moment < prev_move_time) {
@@ -85,7 +85,7 @@ void TestEnvironment::CheckCorrectness() const {
 
 void TestEnvironment::CountMetrics() {
 	for (size_t i = 0; i < metrics_.size(); ++i) {
-		measurements_[i].push_back(metrics_[i]->Evaluate(problem_, solution_));
+		measurements_[i].push_back(metrics_[i]->Evaluate(problem_, *solution_));
 	}
 }
 

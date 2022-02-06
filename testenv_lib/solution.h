@@ -40,6 +40,9 @@ struct Problem {
 
 struct Solution {
 	std::vector<std::vector<Movement>> vm_movements; // i-th vector - movements of i-th VM
+
+	Solution(size_t vms) : vm_movements(vms) {}
+	Solution() = default;
 };
 
 class Server {
