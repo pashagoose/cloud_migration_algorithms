@@ -59,6 +59,14 @@ bool Server::HasVM(size_t vm_id) const {
 	return (vms_.contains(vm_id));
 }
 
+const std::set<size_t>* Server::GetRawVMSet() {
+	return &vms_;
+}
+
 std::tuple<size_t, size_t> Server::GetFreeSpace() const {
 	return {free_cpu_, free_mem_};
+}
+
+bool Server::CanFit(const VM& vm) const {
+	return vm.mem <= free_mem_ && vm.cpu <= free_cpu_;
 }

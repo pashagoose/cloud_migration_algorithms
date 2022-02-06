@@ -54,7 +54,10 @@ public:
 
 	bool HasVM(size_t vm_id) const;
 
-	std::tuple<size_t, size_t> GetFreeSpace() const;
+	std::tuple<size_t, size_t> GetFreeSpace() const; // {cpu, mem}
+	bool CanFit(const VM& vm) const;
+
+	std::set<size_t>* GetRawVMSet();
 
 private:
 	size_t free_mem_;
