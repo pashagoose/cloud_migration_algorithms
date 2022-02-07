@@ -3,9 +3,18 @@
 #include <stdexcept>
 #include <glog/logging.h>
 
-TestEnvironment::TestEnvironment(size_t seed)
-	: measurements_(2, std::vector<long double>())
-	, generator_(std::make_unique<RealLifeGenerator>(seed))
+TestEnvironment::TestEnvironment(
+	size_t seed,
+	size_t diff_percentage_max,
+	size_t servers_quantity_min,
+	size_t servers_quantity_max
+)
+	: accumulators_{
+		MetricsAccumulator("TotalTime"),
+		MetricsAccumulator("TotalMemoryMigration"),
+		MetricsAccumulator("SumMigrationTime")
+	}
+	, generator_(std::make_unique<RealLifeGenerator>(seed, diff_percentage_max, servers_quantity_min, servers_quantity_max))
 {
 	metrics_.emplace_back(std::make_unique<TotalTime>());
 	metrics_.emplace_back(std::make_unique<TotalMemoryMigration>());
@@ -35,6 +44,10 @@ void TestEnvironment::CheckCorrectness() const {
 		for (const auto& move : vm_moves) {
 			if (move.start_moment < prev_move_time) {
 				throw std::runtime_error("Moves are intersecting for VM #" + std::to_string(move.vm_id));
+			}
+
+			if (move.start_moment < 0) {
+				throw std::runtime_error("Move starts at negative timestamp");
 			}
 
 			movements.emplace_back(move);
@@ -85,12 +98,18 @@ void TestEnvironment::CheckCorrectness() const {
 
 void TestEnvironment::CountMetrics() {
 	for (size_t i = 0; i < metrics_.size(); ++i) {
-		measurements_[i].push_back(metrics_[i]->Evaluate(problem_, *solution_));
+		accumulators_[i].AppendMetric(metrics_[i]->Evaluate(problem_, *solution_));
+	}
+}
+
+void TestEnvironment::PrintMeasurements(std::ostream& out) const {
+	for (const auto& accum : accumulators_) {
+		out << accum.GetName() << ": " << "mean=" << accum.GetMean() << '\n';
 	}
 }
 
 void TestEnvironment::ClearMeasurements() {
-	for (auto& metric_measurements : measurements_) {
-		metric_measurements.clear();
+	for (auto& accum : accumulators_) {
+		accum.Clear();
 	}
 }	

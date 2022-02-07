@@ -54,6 +54,14 @@ int RandomIntFromRange(int l, int r, std::mt19937& gen) {
 }
 
 Problem RealLifeGenerator::Generate() {
+	/*
+		TODO: 
+			1) Consider diff_percentage_max (now this feature does not work)
+			2) Generate migration time for VM as random coeeficient multiplied by mem.
+				This coefficient depends on dirty page rate and other low-level things.	
+	*/
+
+
 	size_t server_count = RandomIntFromRange(
 		servers_quantity_min_,
 		servers_quantity_max_,
@@ -107,7 +115,7 @@ Problem RealLifeGenerator::Generate() {
 						cpu, 
 						mem,
 						vm_count++,
-						static_cast<long double>(mem) 
+						static_cast<long double>(mem)
 						// migration time equals to the memory size of VM for now
 					});
 				}

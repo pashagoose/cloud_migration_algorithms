@@ -3,6 +3,7 @@ add_library(testenv_lib STATIC
 	metrics.cpp
 	test_environment.cpp
 	test_generator.cpp
+	solution.cpp
 )
 
 target_link_libraries(testenv_lib PUBLIC

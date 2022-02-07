@@ -37,3 +37,33 @@ long double TotalMemoryMigration::Evaluate(const Problem& task, const Solution& 
 
 	return result;
 }
+
+MetricsAccumulator::MetricsAccumulator(std::string_view name)
+	: metric_name_(name) {}
+
+void MetricsAccumulator::Clear() {
+	measurements_.clear();
+}
+
+void MetricsAccumulator::AppendMetric(long double val) {
+	measurements_.push_back(val);
+}
+
+size_t MetricsAccumulator::TotalCount() const {
+	return measurements_.size();
+}
+
+std::string MetricsAccumulator::GetName() const {
+	return metric_name_;
+}
+
+long double MetricsAccumulator::GetMean() const {
+	long double res = 0;
+	long double divisor = TotalCount();
+
+	for (long double val : measurements_) {
+		res += val / divisor;
+	}
+
+	return res;
+}

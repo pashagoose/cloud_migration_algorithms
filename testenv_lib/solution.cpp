@@ -59,7 +59,7 @@ bool Server::HasVM(size_t vm_id) const {
 	return (vms_.contains(vm_id));
 }
 
-const std::set<size_t>* Server::GetRawVMSet() {
+std::set<size_t>* Server::GetRawVMSet() {
 	return &vms_;
 }
 
