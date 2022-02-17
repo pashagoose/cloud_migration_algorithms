@@ -11,9 +11,9 @@ int main(int argc, const char* argv[]) {
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
-    constexpr size_t tests = 1;
+    constexpr size_t tests = 10;
 
-	TestEnvironment test_env(42, 15, 3, 5);
+	TestEnvironment test_env(42, 15, 100, 1000);
 	size_t solved = test_env.RunTests(tests, AlgoBaseline::Solve);
 
 	LOG(INFO) << "Solved " << solved << " cases out of " << tests << " tests";

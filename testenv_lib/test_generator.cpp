@@ -54,14 +54,6 @@ int RandomIntFromRange(int l, int r, std::mt19937& gen) {
 }
 
 Problem RealLifeGenerator::Generate() {
-	/*
-		TODO: 
-			1) Consider diff_percentage_max (now this feature does not work)
-			2) Generate migration time for VM as random coeeficient multiplied by mem.
-				This coefficient depends on dirty page rate and other low-level things.	
-	*/
-
-
 	size_t server_count = RandomIntFromRange(
 		servers_quantity_min_,
 		servers_quantity_max_,
@@ -111,11 +103,13 @@ Problem RealLifeGenerator::Generate() {
 						break;
 					}
 
+					double mem_mig_velocity = 1.0 + unif_gen(rnd_);
+
 					return std::optional<VM>(VM{
 						cpu, 
 						mem,
 						vm_count++,
-						static_cast<long double>(mem)
+						mem_mig_velocity * static_cast<long double>(mem)
 						// migration time equals to the memory size of VM for now
 					});
 				}
@@ -150,13 +144,9 @@ Problem RealLifeGenerator::Generate() {
 
 	result.end_position = result.start_position;
 
-	std::vector<VM> vms = result.vms;
+	std::vector<VM> vms_for_move = result.vms;
 
-	std::shuffle(vms.begin(), vms.end(), rnd_);
-
-	size_t server_index = 0;
-	size_t freemem = result.server_specs[0].mem;
-	size_t freecpu = result.server_specs[0].cpu;
+	std::shuffle(vms_for_move.begin(), vms_for_move.end(), rnd_);
 
 	auto get_random_server_spec_with_enough_space = [&](size_t cpu, size_t mem) {
 		while (true) {
@@ -167,33 +157,60 @@ Problem RealLifeGenerator::Generate() {
 		}
 	};
 
-	for (auto& vm : vms) {
-		while (true) {
-			if (server_index == result.server_specs.size()) {
-				result.server_specs.push_back(
-					get_random_server_spec_with_enough_space(vm.cpu, vm.mem)
-				);
+	size_t server_index = 0;
+	size_t vms_to_move =  vms_for_move.size() * (static_cast<double>(diff_percentage_max_) / 100.0);
 
-				freemem = result.server_specs[server_index].mem;
-				freecpu = result.server_specs[server_index].cpu;
-			}
+	std::vector<size_t> server_permutation(server_count);
+	for (size_t i = 0; i < server_count; ++i) {
+		server_permutation[i] = i;
+	}
+	std::shuffle(server_permutation.begin(), server_permutation.end(), rnd_);
 
-			if (freemem >= vm.mem && freecpu >= vm.cpu) {
-				freemem -= vm.mem;
-				freecpu -= vm.cpu;
-				result.end_position.vm_server[vm.id] = server_index;
+	std::vector<Server> servers_emulation;
+	servers_emulation.reserve(server_count);
+
+	for (size_t i = 0; i < result.server_specs.size(); ++i) {
+		servers_emulation.emplace_back(result.server_specs[i], i);
+	}
+
+	for (size_t i = vms_to_move; i < vms_for_move.size(); ++i) {
+		servers_emulation[result.start_position.vm_server[vms_for_move[i].id]].ReceiveVM(vms_for_move[i]);
+		servers_emulation[result.start_position.vm_server[vms_for_move[i].id]].CancelReceivingVM();
+	}
+
+	for (size_t i = 0; i < std::min(vms_for_move.size(), vms_to_move); ++i) {
+		const VM& vm = vms_for_move[i];
+
+		size_t iters = 0;
+		while (iters != result.server_specs.size()) {
+			if (servers_emulation[server_permutation[server_index]].CanFit(vm)) {
+				servers_emulation[server_permutation[server_index]].ReceiveVM(vm);
+				servers_emulation[server_permutation[server_index]].CancelReceivingVM();
+				result.end_position.vm_server[vm.id] = server_permutation[server_index];
 				break;
 			} else {
-				++server_index;
+				server_index = (server_index + 1) % result.server_specs.size();
+				++iters;
 			}
+		}
+
+		if (iters == result.server_specs.size()) {
+			result.server_specs.push_back(
+				get_random_server_spec_with_enough_space(vm.cpu, vm.mem)
+			);
+			server_permutation.push_back(result.server_specs.size() - 1);
+			servers_emulation.emplace_back(result.server_specs.back(), result.server_specs.size() - 1);
+
+			servers_emulation.back().ReceiveVM(vm);
+			servers_emulation.back().CancelReceivingVM();
+
+			result.end_position.vm_server[vm.id] = result.server_specs.size() - 1;
+			server_index = result.server_specs.size() - 1;
 		}
 	}
 
 	// serves as buffer
-	result.server_specs.push_back(ServerSpec{512, 128, 1, 1}); 
-
-	// my guess is that end position is worse vm arrangement, so we swap
-	std::swap(result.start_position, result.end_position);
+	result.server_specs.push_back(ServerSpec{512, 128, 1, 1});
 
 	return result;
 }
