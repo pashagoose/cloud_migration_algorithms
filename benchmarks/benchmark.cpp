@@ -6,6 +6,9 @@
 #include "../testenv_lib/test_generator.h"
 #include "../algorithms_lib/algorithms.h"
 
+// PROTO
+#include "../proto/test_case.pb.h"
+
 int main(int argc, const char* argv[]) {
 	FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
@@ -19,6 +22,8 @@ int main(int argc, const char* argv[]) {
 	LOG(INFO) << "Solved " << solved << " cases out of " << tests << " tests";
 
 	test_env.PrintMeasurements(std::cout);
+
+	test_case::TestCase test;
 	
 	return 0;
 }

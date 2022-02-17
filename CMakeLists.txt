@@ -13,6 +13,16 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(FetchContent)
 include(cmake/FindGlog.cmake)
+include(FindProtobuf)
+
+find_package(Protobuf REQUIRED)
+
+if(NOT PROTOBUF_FOUND)
+    message(SEND_ERROR "Failed to find PROTOBUF")
+    return()
+else()
+    message("Found PROTOBUF ${PROTOBUF_LIBRARY}")
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,3 +33,4 @@ add_compile_options(-Wall -Wextra -pedantic)
 add_subdirectory(algorithms_lib)
 add_subdirectory(testenv_lib)
 add_subdirectory(benchmarks)
+add_subdirectory(proto)

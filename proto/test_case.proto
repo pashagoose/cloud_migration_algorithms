@@ -1,0 +1,29 @@
+syntax = "proto2";
+
+package test_case;
+
+message VM {
+	required int32 cpu = 1;
+	required int32 mem = 2;
+	required int32 id = 3;
+	required double migration_time = 4;
+}
+
+message VMArrangement {
+	repeated int32 vm_server = 1 [packed = true];
+}
+
+message ServerSpec {
+	required int32 mem = 1;
+	required int32 cpu = 2;
+	required int32 max_in = 3;
+	required int32 max_out = 4;
+}
+
+message TestCase {
+	required int32 id = 1;
+	required VMArrangement start_position = 2;
+	required VMArrangement end_position = 3;
+	repeated VM vms = 4;
+	repeated ServerSpec specs = 5;
+}
