@@ -14,16 +14,22 @@ int main(int argc, const char* argv[]) {
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
+    if (argc < 2) {
+    	std::cerr << "No path for tests\n";
+    	return 0;
+    }
+
     constexpr size_t tests = 10;
 
 	TestEnvironment test_env(42, 15, 100, 1000);
-	size_t solved = test_env.RunTests(tests, AlgoBaseline::Solve);
+	
+	test_env.GenerateAndDumpTests(argv[1], 10);
 
-	LOG(INFO) << "Solved " << solved << " cases out of " << tests << " tests";
+	DataSet::DataSet dataset = LoadTests(argv[1]);
 
-	test_env.PrintMeasurements(std::cout);
+	size_t solved = test_env.RunTestsFromDataSet(dataset, AlgoBaseline::Solve);
 
-	test_case::TestCase test;
+	LOG(INFO) << "Solved: " << solved << " out of " << dataset.tests_size();
 	
 	return 0;
 }

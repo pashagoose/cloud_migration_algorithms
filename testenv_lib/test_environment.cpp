@@ -113,3 +113,95 @@ void TestEnvironment::ClearMeasurements() {
 		accum.Clear();
 	}
 }	
+
+void TestEnvironment::GenerateAndDumpTests(const std::string& path, size_t test_count) {
+	std::ofstream file(path, std::ios::binary | std::ios::trunc | std::ios::out);
+
+	if (!file.is_open()) {
+		throw std::invalid_argument("Path `" + path + "` seems incorrect for dumping tests");
+	}
+
+	DataSet::DataSet dataset;
+
+	for (size_t i = 0; i < test_count; ++i) {
+		auto problem = generator_->Generate();
+
+		DataSet::TestCase* test = dataset.add_tests();
+
+		test->set_id(i);
+
+		for (size_t i = 0; i < problem.vms.size(); ++i) {
+			DataSet::VM* vm = test->add_vms();
+
+			vm->set_cpu(problem.vms[i].cpu);
+			vm->set_mem(problem.vms[i].mem);
+			vm->set_id(problem.vms[i].id);
+			vm->set_migration_time(problem.vms[i].migration_time);
+		}
+
+		for (size_t i = 0; i < problem.server_specs.size(); ++i) {
+			DataSet::ServerSpec* spec = test->add_specs();
+
+			spec->set_mem(problem.server_specs[i].mem);
+			spec->set_cpu(problem.server_specs[i].cpu);
+			spec->set_max_in(problem.server_specs[i].max_in);
+			spec->set_max_out(problem.server_specs[i].max_out);
+		}
+
+		DataSet::VMArrangement* start_pos = test->mutable_start_position();
+		DataSet::VMArrangement* end_pos = test->mutable_end_position();
+
+		for (size_t i = 0; i < problem.vms.size(); ++i) {
+			start_pos->add_vm_server(problem.start_position.vm_server[i]); 
+			end_pos->add_vm_server(problem.end_position.vm_server[i]);
+		}
+	}
+
+	dataset.SerializeToOstream(&file);
+}
+
+DataSet::DataSet LoadTests(const std::string& path) {
+	std::ifstream file(path, std::ios::in | std::ios::binary);
+
+	if (!file.is_open()) {
+		throw std::invalid_argument("Cannot load tests from `" + path + "`");
+	}
+
+	DataSet::DataSet dataset;
+	dataset.ParseFromIstream(&file);
+
+	return dataset;
+}
+
+Problem ConvertTestCaseToProblem(const DataSet::TestCase& test) {
+	Problem result;
+
+	result.vms.resize(test.vms_size());
+	result.server_specs.resize(test.specs_size());
+	result.start_position.vm_server.resize(test.start_position().vm_server_size());
+	result.end_position.vm_server.resize(test.end_position().vm_server_size());
+
+	for (size_t i = 0; i < test.vms_size(); ++i) {
+		result.vms[i].id = test.vms(i).id();
+		result.vms[i].mem = test.vms(i).mem();
+		result.vms[i].cpu = test.vms(i).cpu();
+		result.vms[i].migration_time = test.vms(i).migration_time();
+	}
+
+	for (size_t i = 0; i < test.specs_size(); ++i) {
+		result.server_specs[i].mem = test.specs(i).mem();
+		result.server_specs[i].cpu = test.specs(i).cpu();
+		result.server_specs[i].max_in = test.specs(i).max_in();
+		result.server_specs[i].max_out = test.specs(i).max_out();
+	}
+
+	const DataSet::VMArrangement& start_pos = test.start_position();
+	const DataSet::VMArrangement& end_pos = test.end_position();
+
+	for (size_t i = 0; i < start_pos.vm_server_size(); ++i) {
+		result.start_position.vm_server[i] = start_pos.vm_server(i);
+		result.end_position.vm_server[i] = end_pos.vm_server(i);
+	}
+
+	return result;
+}

@@ -1,3 +1,5 @@
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 set(TESTENV_SRCS grader.cpp metrics.cpp test_environment.cpp test_generator.cpp solution.cpp)
 
 add_library(testenv_lib STATIC ${TESTENV_SRCS})

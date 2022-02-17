@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package test_case;
+package DataSet;
 
 message VM {
 	required int32 cpu = 1;
@@ -26,4 +26,8 @@ message TestCase {
 	required VMArrangement end_position = 3;
 	repeated VM vms = 4;
 	repeated ServerSpec specs = 5;
+}
+
+message DataSet {
+	repeated TestCase tests = 1;
 }
