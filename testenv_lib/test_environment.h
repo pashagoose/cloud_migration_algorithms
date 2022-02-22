@@ -34,7 +34,7 @@ public:
 			problem_ = generator_->Generate();
 			solution_ = solver(problem_);
 
-			//PrintTest(problem_);
+			// PrintTest(problem_);
 
 			if (solution_) {
 				CheckCorrectness();

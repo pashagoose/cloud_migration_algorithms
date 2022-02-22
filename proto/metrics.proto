@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package Metrics;
+
+message Metrics {
+	required double total_time = 1;
+	required double sum_time = 2;
+	required double migrated_memory = 3;
+}
+
+message MetricsSet {
+	repeated Metrics metrics = 1;
+}

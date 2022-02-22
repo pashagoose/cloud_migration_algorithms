@@ -1,6 +1,6 @@
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS test_case.proto)
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS test_case.proto metrics.proto)
 
 add_library(proto_lib ${PROTO_HDRS} ${PROTO_SRCS})
 

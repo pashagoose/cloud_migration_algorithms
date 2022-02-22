@@ -175,7 +175,7 @@ Problem RealLifeGenerator::Generate() {
 
 	for (size_t i = vms_to_move; i < vms_for_move.size(); ++i) {
 		servers_emulation[result.start_position.vm_server[vms_for_move[i].id]].ReceiveVM(vms_for_move[i]);
-		servers_emulation[result.start_position.vm_server[vms_for_move[i].id]].CancelReceivingVM();
+		servers_emulation[result.start_position.vm_server[vms_for_move[i].id]].CancelReceivingVM(vms_for_move[i]);
 	}
 
 	for (size_t i = 0; i < std::min(vms_for_move.size(), vms_to_move); ++i) {
@@ -185,7 +185,7 @@ Problem RealLifeGenerator::Generate() {
 		while (iters != result.server_specs.size()) {
 			if (servers_emulation[server_permutation[server_index]].CanFit(vm)) {
 				servers_emulation[server_permutation[server_index]].ReceiveVM(vm);
-				servers_emulation[server_permutation[server_index]].CancelReceivingVM();
+				servers_emulation[server_permutation[server_index]].CancelReceivingVM(vm);
 				result.end_position.vm_server[vm.id] = server_permutation[server_index];
 				break;
 			} else {
@@ -202,7 +202,7 @@ Problem RealLifeGenerator::Generate() {
 			servers_emulation.emplace_back(result.server_specs.back(), result.server_specs.size() - 1);
 
 			servers_emulation.back().ReceiveVM(vm);
-			servers_emulation.back().CancelReceivingVM();
+			servers_emulation.back().CancelReceivingVM(vm);
 
 			result.end_position.vm_server[vm.id] = result.server_specs.size() - 1;
 			server_index = result.server_specs.size() - 1;

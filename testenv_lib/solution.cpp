@@ -26,8 +26,6 @@ void Server::ReceiveVM(const VM& vm) {
 	free_cpu_ -= vm.cpu;
 	free_mem_ -= vm.mem;
 	--free_download_connections_;
-
-	vms_.insert(vm.id);
 }
 
 void Server::SendVM(const VM& vm) {
@@ -35,23 +33,22 @@ void Server::SendVM(const VM& vm) {
 		throw std::runtime_error("Server #" + std::to_string(id_) + " cannot send so many VMs");
 	}
 
-	free_mem_ += vm.mem;
-	free_cpu_ += vm.cpu;
 	--free_upload_connections_;
 
-	auto it = vms_.find(vm.id);
-	if (it == vms_.end()) {
+	if (vms_.find(vm.id) == vms_.end()) {
 		throw std::runtime_error("No VM#" + std::to_string(vm.id) + " on server");
 	}
-
-	vms_.erase(it);
 }
 
-void Server::CancelReceivingVM() {
+void Server::CancelReceivingVM(const VM& vm) {
+	vms_.insert(vm.id);
 	++free_download_connections_;
 }
 
-void Server::CancelSendingVM() {
+void Server::CancelSendingVM(const VM& vm) {
+	free_mem_ += vm.mem;
+	free_cpu_ += vm.cpu;
+	vms_.erase(vm.id);
 	++free_upload_connections_;
 }
 
@@ -69,4 +66,12 @@ std::tuple<size_t, size_t> Server::GetFreeSpace() const {
 
 bool Server::CanFit(const VM& vm) const {
 	return vm.mem <= free_mem_ && vm.cpu <= free_cpu_;
+}
+
+bool Server::CanSendVM() const {
+	return free_upload_connections_;
+}
+
+bool Server::CanReceiveVM(const VM& vm) const {
+	return free_download_connections_ && CanFit(vm);
 }

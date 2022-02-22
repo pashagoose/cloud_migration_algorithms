@@ -52,8 +52,11 @@ public:
 	void ReceiveVM(const VM& vm);
 	void SendVM(const VM& vm);
 
-	void CancelReceivingVM();
-	void CancelSendingVM();
+	void CancelReceivingVM(const VM& vm);
+	void CancelSendingVM(const VM& vm);
+
+	bool CanSendVM() const;
+	bool CanReceiveVM(const VM& vm) const;
 
 	bool HasVM(size_t vm_id) const;
 

@@ -1,5 +1,7 @@
 #include "algorithms.h"
 
+#include <glog/logging.h>
+
 namespace AlgoBaseline {
 
 struct cmp_by_mem {
@@ -39,10 +41,10 @@ std::optional<Solution> Solve(const Problem& problem) {
 
 	for (const auto& vm : problem.vms) {
 		servers[vm_pos[vm.id]].ReceiveVM(vm);
-		servers[vm_pos[vm.id]].CancelReceivingVM();
+		servers[vm_pos[vm.id]].CancelReceivingVM(vm);
 
 		servers_end_pos[problem.end_position.vm_server[vm.id]].ReceiveVM(vm);
-		servers_end_pos[problem.end_position.vm_server[vm.id]].CancelReceivingVM();
+		servers_end_pos[problem.end_position.vm_server[vm.id]].CancelReceivingVM(vm);
 	}
 
 	auto cmp_vm_ids_by_mem = [&](size_t lhs, size_t rhs) {
@@ -61,20 +63,24 @@ std::optional<Solution> Solve(const Problem& problem) {
 
 		if (end_pos != problem.start_position.vm_server[vm.id]) {
 			misplaced_vms.insert(problem.vms[vm.id]);
-		}
 
-		if (servers[end_pos].CanFit(problem.vms[vm.id])) {
-			available_for_migration.insert(problem.vms[vm.id]);
+			if (servers[end_pos].CanFit(problem.vms[vm.id])) {
+				available_for_migration.insert(problem.vms[vm.id]);
+			}
 		}
 	}
 
 	auto perform_move = [&](size_t vm_id, size_t from, size_t to) {
 		vm_pos[vm_id] = to;
 
+		if (from == to) {
+			return;
+		}
+
 		servers[from].SendVM(problem.vms[vm_id]);
-		servers[from].CancelSendingVM();
 		servers[to].ReceiveVM(problem.vms[vm_id]);
-		servers[to].CancelReceivingVM();
+		servers[from].CancelSendingVM(problem.vms[vm_id]);
+		servers[to].CancelReceivingVM(problem.vms[vm_id]);
 
 		solution.vm_movements[vm_id].push_back(Movement{
 			.from = from,

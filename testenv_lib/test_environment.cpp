@@ -33,7 +33,7 @@ void TestEnvironment::CheckCorrectness() const {
 
 	for (size_t i = 0; i < problem_.start_position.vm_server.size(); ++i) {
 		servers[problem_.start_position.vm_server[i]].ReceiveVM(problem_.vms[i]);
-		servers[problem_.start_position.vm_server[i]].CancelReceivingVM();
+		servers[problem_.start_position.vm_server[i]].CancelReceivingVM(problem_.vms[i]);
 	}
 
 	// Sort all moves
@@ -73,8 +73,8 @@ void TestEnvironment::CheckCorrectness() const {
 		while (!transfer_endings.empty() && transfer_endings.begin()->first <= current_moment) {
 			const auto& passed_move = transfer_endings.begin()->second;
 
-			servers[passed_move.from].CancelSendingVM();
-			servers[passed_move.to].CancelReceivingVM();
+			servers[passed_move.from].CancelSendingVM(problem_.vms[passed_move.vm_id]);
+			servers[passed_move.to].CancelReceivingVM(problem_.vms[passed_move.vm_id]);
 
 			transfer_endings.erase(transfer_endings.begin());
 		}
@@ -83,6 +83,15 @@ void TestEnvironment::CheckCorrectness() const {
 		servers[move.from].SendVM(problem_.vms[move.vm_id]);
 		servers[move.to].ReceiveVM(problem_.vms[move.vm_id]);
 		transfer_endings.insert({move.start_moment + move.duration, move});
+	}
+
+	while (!transfer_endings.empty()) {
+		const auto& passed_move = transfer_endings.begin()->second;
+
+		servers[passed_move.from].CancelSendingVM(problem_.vms[passed_move.vm_id]);
+		servers[passed_move.to].CancelReceivingVM(problem_.vms[passed_move.vm_id]);
+
+		transfer_endings.erase(transfer_endings.begin());
 	}
 
 	// Check equality of the final configurations

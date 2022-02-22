@@ -19,17 +19,17 @@ int main(int argc, const char* argv[]) {
     	return 0;
     }
 
-    constexpr size_t tests = 10;
+    constexpr size_t tests = 100;
 
 	TestEnvironment test_env(42, 15, 100, 1000);
 	
-	test_env.GenerateAndDumpTests(argv[1], 10);
+	//test_env.GenerateAndDumpTests(argv[1], tests);
 
 	DataSet::DataSet dataset = LoadTests(argv[1]);
 
-	size_t solved = test_env.RunTestsFromDataSet(dataset, AlgoBaseline::Solve);
+	size_t solved = test_env.RunTests(tests, AlgoParallelBaseline::Solve);
 
-	LOG(INFO) << "Solved: " << solved << " out of " << dataset.tests_size();
+	LOG(INFO) << "Solved: " << solved << " out of " << tests;
 	
 	return 0;
 }
