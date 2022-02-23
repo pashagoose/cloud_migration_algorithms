@@ -2,12 +2,17 @@ syntax = "proto2";
 
 package Metrics;
 
-message Metrics {
-	required double total_time = 1;
-	required double sum_time = 2;
-	required double migrated_memory = 3;
+message Metric {
+	required string name = 1;
+	required double value = 2;
+}
+
+message Metrics { // per test
+	repeated Metric measurements = 1;
 }
 
 message MetricsSet {
 	repeated Metrics metrics = 1;
+	required int32 tests = 2;
+	required int32 solved = 3;
 }

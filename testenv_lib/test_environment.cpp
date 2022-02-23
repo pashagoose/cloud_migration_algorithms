@@ -105,9 +105,15 @@ void TestEnvironment::CheckCorrectness() const {
 	}
 }
 
-void TestEnvironment::CountMetrics() {
+void TestEnvironment::CountMetrics(Metrics::MetricsSet* measurements) {
+	Metrics::Metrics* test_measurements = measurements->add_metrics();
+
 	for (size_t i = 0; i < metrics_.size(); ++i) {
-		accumulators_[i].AppendMetric(metrics_[i]->Evaluate(problem_, *solution_));
+		Metrics::Metric* single_measurement = test_measurements->add_measurements();
+		single_measurement->set_name(accumulators_[i].GetName());
+		long double res = metrics_[i]->Evaluate(problem_, *solution_);
+		single_measurement->set_value(res);
+		accumulators_[i].AppendMetric(res);
 	}
 }
 

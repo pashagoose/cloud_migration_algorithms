@@ -8,14 +8,18 @@
 
 // PROTO
 #include "../proto/test_case.pb.h"
+#include "../proto/metrics.pb.h"
+
+
+#include <google/protobuf/util/json_util.h>
 
 int main(int argc, const char* argv[]) {
 	FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
-    if (argc < 2) {
-    	std::cerr << "No path for tests\n";
+    if (argc < 3) {
+    	std::cerr << "No path for tests and metric output \n";
     	return 0;
     }
 
@@ -27,9 +31,21 @@ int main(int argc, const char* argv[]) {
 
 	DataSet::DataSet dataset = LoadTests(argv[1]);
 
-	size_t solved = test_env.RunTests(tests, AlgoParallelBaseline::Solve);
+	Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, AlgoBaseline::Solve);
 
-	LOG(INFO) << "Solved: " << solved << " out of " << tests;
+	//LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
+
+	//test_env.PrintMeasurements(std::cout);
+	//measurements.SerializeToOstream(&file);
+	std::string result;
+	google::protobuf::util::JsonPrintOptions options;
+	options.add_whitespace = true;
+	options.preserve_proto_field_names = true;
+
+	google::protobuf::util::MessageToJsonString(measurements, &result, options);
+
+	std::ofstream fout(argv[2], std::ios::binary | std::ios::trunc | std::ios::out);
+	fout << result;
 	
 	return 0;
 }

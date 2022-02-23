@@ -11,6 +11,7 @@
 #include "test_generator.h"
 
 #include "../proto/test_case.pb.h"
+#include "../proto/metrics.pb.h"
 
 Problem ConvertTestCaseToProblem(const DataSet::TestCase& test);
 
@@ -26,9 +27,10 @@ public:
 	);
 
 	template<class Algorithm>
-	size_t RunTests(size_t tests_count, Algorithm solver) {
+	Metrics::MetricsSet RunTests(size_t tests_count, Algorithm solver) {
 		// Return solved_cases
 		size_t solved_cases = 0;
+		Metrics::MetricsSet measurements;
 
 		for (size_t i = 0; i < tests_count; ++i) {
 			problem_ = generator_->Generate();
@@ -38,17 +40,21 @@ public:
 
 			if (solution_) {
 				CheckCorrectness();
-				CountMetrics();
+				CountMetrics(&measurements);
 				++solved_cases;
 			}
 		}
 
-		return solved_cases;
+		measurements.set_tests(tests_count);
+		measurements.set_solved(solved_cases);
+
+		return measurements;
 	}
 
 	template<class Algorithm>
-	size_t RunTestsFromDataSet(DataSet::DataSet dataset, Algorithm solver) {
+	Metrics::MetricsSet RunTestsFromDataSet(DataSet::DataSet dataset, Algorithm solver) {
 		size_t solved_cases = 0;
+		Metrics::MetricsSet measurements;
 
 		for (size_t i = 0; i < dataset.tests_size(); ++i) {
 			problem_ = ConvertTestCaseToProblem(dataset.tests(i));
@@ -58,12 +64,15 @@ public:
 
 			if (solution_) {
 				CheckCorrectness();
-				CountMetrics();
+				CountMetrics(&measurements);
 				++solved_cases;
 			}
 		}
 
-		return solved_cases;
+		measurements.set_tests(dataset.tests_size());
+		measurements.set_solved(solved_cases);
+
+		return measurements;
 	}
 
 	void GenerateAndDumpTests(const std::string& path, size_t test_count);
@@ -73,7 +82,7 @@ public:
 
 private:
 	void CheckCorrectness() const;
-	void CountMetrics();
+	void CountMetrics(Metrics::MetricsSet* measurements);
 
 private:
 	Problem problem_;
