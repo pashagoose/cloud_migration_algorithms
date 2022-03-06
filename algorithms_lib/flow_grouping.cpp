@@ -130,7 +130,15 @@ FlowState DinicFindMaxFlow(const Graph& g) {
 }
 
 std::optional<Solution> Solve(const Problem& problem) {
-	return std::nullopt;
+	/*
+		1) Build bipartite graph, where each server is respresented as two vertices in different parts.
+			These two vertices mean input and output of server. Draw edges which represent possible VM migrations
+			(from output of source to input of destination, if there is enough space on destination server).
+		2) Extract concurrent migration groups as maximum flow in this bipartite graph. If no VM can move
+			to their destination - break the cycle (as in baseline algorithm).
+	*/
+
+	throw std::runtime_error("Not implemented");
 }
 
 }
