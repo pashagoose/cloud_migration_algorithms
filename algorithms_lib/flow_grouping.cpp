@@ -130,17 +130,139 @@ FlowState DinicFindMaxFlow(const Graph& g) {
 }
 
 std::optional<Solution> Solve(const Problem& problem) {
+	// ONLY WORKS IF ALL servers' `max_in` ARE 1
 	/*
 		1) Build bipartite graph, where each server is respresented as two vertices in different parts.
 			These two vertices mean input and output of server. Draw edges which represent possible VM migrations
 			(from output of source to input of destination, if there is enough space on destination server).
 		2) Extract concurrent migration groups as maximum flow in this bipartite graph. If no VM can move
-			to their destination - create a couple of migration groups to break the cycle (like in baseline algorithm).
-		3) Try to combine groups - if finished migration in i-th group - try to start any possible migration 
+			to their destination - (TODO) create a couple of migration groups to break the cycle (like in baseline algorithm).
+		3) (TODO) Try to combine groups - if finished migration in i-th group - try to start any possible migration 
 			in (i + 1)-th group, do not wait for whole i-th group.
 	*/
 
-	throw std::runtime_error("Not implemented");
+	size_t servers_cnt = problem.server_specs.size();
+
+	std::vector<Server> servers;
+	servers.reserve(servers_cnt);
+
+	for (size_t i = 0; i < servers_cnt; ++i) {
+		servers.emplace_back(problem.server_specs[i], i);
+	}
+
+	size_t misplaced = 0;
+
+	for (size_t i = 0; i < problem.vms.size(); ++i) {
+		misplaced += (problem.start_position.vm_server[i] != problem.end_position.vm_server[i]);
+		servers[problem.start_position.vm_server[i]].ReceiveVM(problem.vms[i]);
+		servers[problem.start_position.vm_server[i]].CancelReceivingVM(problem.vms[i]);
+	}
+
+	std::vector<size_t> available_for_migration;
+	std::vector<size_t> vm_pos = problem.start_position.vm_server;
+
+	auto recalculate = [&]() {
+		available_for_migration.clear();
+		misplaced = 0;
+
+		for (size_t i = 0; i < problem.vms.size(); ++i) {
+			if (problem.end_position.vm_server[i] != vm_pos[i]) {
+				++misplaced;
+				if (servers[problem.end_position.vm_server[i]].CanFit(problem.vms[i])) {
+					available_for_migration.push_back(i);
+				}
+			}
+		}
+	};
+
+	std::vector<size_t> edge_vm_bijection;
+
+	auto build_graph = [&]() {
+		Graph g;
+		g.adjLists.resize(2 * servers_cnt + 2);
+		g.sink = 2 * servers_cnt;
+		g.drain = 2 * servers_cnt + 1;
+		size_t edges_count = 0;
+		edge_vm_bijection.clear();
+
+		for (auto vm_id : available_for_migration) {
+			size_t from = vm_pos[vm_id], to = servers_cnt + problem.end_position.vm_server[vm_id];
+			g.adjLists[from].push_back(Edge{from, to, 1, edges_count, false});
+			g.adjLists[to].push_back(Edge{to, from, 1, edges_count++, true});
+
+			edge_vm_bijection.push_back(vm_id);
+		}
+
+		for (size_t i = 0; i < servers_cnt; ++i) {
+			g.adjLists[g.sink].push_back(
+				Edge{g.sink, i, problem.server_specs[i].max_out, edges_count, false}
+			);
+			g.adjLists[i].push_back(
+				Edge{i, g.sink, problem.server_specs[i].max_out, edges_count++, true}
+			);
+
+			g.adjLists[servers_cnt + i].push_back(
+				Edge{servers_cnt + i, g.drain, problem.server_specs[i].max_in, edges_count, false}
+			);
+			g.adjLists[g.drain].push_back(
+				Edge{g.drain, servers_cnt + i, problem.server_specs[i].max_in, edges_count++, true}
+			);
+		}
+
+		return g;
+	};
+
+	Solution solution(problem.vms.size());
+	long double timer = 0;
+
+	while (misplaced != 0) {
+		LOG(INFO) << "Misplaced: " << misplaced;
+
+		recalculate();
+
+		if (available_for_migration.empty()) {
+			// oops, break the cycle (usually get here when misplaced is about ~3)
+			LOG(INFO) << "need to break";
+			return std::nullopt;
+		}
+
+		Graph g = build_graph();
+		FlowState maxflow = DinicFindMaxFlow(g);
+
+		long double maxMigtime = 0;
+		assert(maxflow.totalFlow != 0);
+
+		for (size_t i = 0; i < servers_cnt; ++i) {
+			for (const auto& e : g.adjLists[i]) {
+				if (e.rev) continue;
+				if (maxflow.flow[e.id] != 0) {
+					size_t vm_id = edge_vm_bijection[e.id];
+					
+					maxMigtime = std::max(maxMigtime, problem.vms[vm_id].migration_time);
+					solution.vm_movements[vm_id].push_back(
+						Movement{
+							.from = vm_pos[vm_id], 
+							.to = problem.end_position.vm_server[vm_id],
+							.start_moment = timer,
+							.duration = problem.vms[vm_id].migration_time,
+							.vm_id = vm_id
+						}
+					);
+
+					servers[vm_pos[vm_id]].SendVM(problem.vms[vm_id]);
+					servers[problem.end_position.vm_server[vm_id]].ReceiveVM(problem.vms[vm_id]);
+					servers[problem.end_position.vm_server[vm_id]].CancelReceivingVM(problem.vms[vm_id]);
+					servers[vm_pos[vm_id]].CancelSendingVM(problem.vms[vm_id]);
+
+					vm_pos[vm_id] = problem.end_position.vm_server[vm_id];
+				}
+			}
+		}
+
+		timer += maxMigtime;
+	}
+
+	return solution;
 }
 
 }

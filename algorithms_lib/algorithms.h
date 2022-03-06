@@ -1,7 +1,9 @@
 #include "../testenv_lib/solution.h"
 
+#include <cassert>
 #include <map>
 #include <optional>
+#include <queue>
 #include <vector>
 
 namespace AlgoBaseline {
