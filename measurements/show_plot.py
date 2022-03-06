@@ -1,31 +1,32 @@
 import matplotlib.pyplot as plt
 import json
 
-with open('baseline_metrics.json') as baseline_json:
-    baseline_metrics = json.load(baseline_json)
+def get_graphic_for_metrics(filename):
+	with open(filename) as metric_json:
+		metrics = json.load(metric_json)
 
-with open('parallel_baseline_metrics.json') as parallel_baseline_json:
-    parallel_baseline_metrics = json.load(parallel_baseline_json)
+	xs = list(range(1, 101))
+	ys = []
 
-xs = list(range(1, 101))
+	for measurement in metrics['metrics']:
+		metric_id = 1
+		for metric in measurement['measurements']:
+			metric_id -= 1
+			if metric_id == 0:
+				ys.append(metric['value'])
+				break
 
-ys_baseline = []
-ys_parallel_baseline = []
+	return xs, ys
 
-for measurement in baseline_metrics['metrics']:
-	for metric in measurement['measurements']:
-		ys_baseline.append(metric['value'])
-		break
-
-for measurement in parallel_baseline_metrics['metrics']:
-	for metric in measurement['measurements']:
-		ys_parallel_baseline.append(metric['value'])
-		break
+xs, ys_baseline = get_graphic_for_metrics('baseline_metrics.json')
+xs, ys_parallel_baseline = get_graphic_for_metrics('parallel_baseline_metrics.json')
+xs, ys_flow_grouping = get_graphic_for_metrics('parallel_flow_grouping.json')
 
 plt.plot(xs, ys_baseline, color='r', label='baseline')
 plt.plot(xs, ys_parallel_baseline, color='g', label='parallel baseline')
+plt.plot(xs, ys_flow_grouping, color='b', label='flow grouping')
 
-plt.ylabel('timespan')
+plt.ylabel('total memory migration')
 plt.xlabel('tests')
 
 plt.legend(loc='upper left')

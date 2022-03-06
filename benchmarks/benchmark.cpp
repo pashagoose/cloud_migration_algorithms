@@ -33,9 +33,10 @@ int main(int argc, const char* argv[]) {
 
 	//Metrics::MetricsSet measurements = test_env.RunTests(tests, AlgoFlowGrouping::Solve);
 
-	LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
+	//LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
 
-	test_env.PrintMeasurements(std::cout);
+	//test_env.PrintMeasurements(std::cout);
+
 	//measurements.SerializeToOstream(&file);
 	std::string result;
 	google::protobuf::util::JsonPrintOptions options;
