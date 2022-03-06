@@ -135,7 +135,9 @@ std::optional<Solution> Solve(const Problem& problem) {
 			These two vertices mean input and output of server. Draw edges which represent possible VM migrations
 			(from output of source to input of destination, if there is enough space on destination server).
 		2) Extract concurrent migration groups as maximum flow in this bipartite graph. If no VM can move
-			to their destination - break the cycle (as in baseline algorithm).
+			to their destination - create a couple of migration groups to break the cycle (like in baseline algorithm).
+		3) Try to combine groups - if finished migration in i-th group - try to start any possible migration 
+			in (i + 1)-th group, do not wait for whole i-th group.
 	*/
 
 	throw std::runtime_error("Not implemented");
