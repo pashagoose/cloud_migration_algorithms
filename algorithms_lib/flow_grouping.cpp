@@ -17,16 +17,16 @@ struct Edge {
 
 struct Graph {
 	std::vector<std::vector<Edge>> adjLists;
+	size_t sink;
+	size_t drain;
 };
 
 struct FlowState {
 	Graph g;
 	std::vector<size_t> flow; // array with flow values for each edge
 	size_t totalFlow = 0;
-	size_t sink;
-	size_t drain;
 
-	FlowState(const Graph& g_new, size_t s, size_t t) : g(g_new), sink(s), drain(t) {
+	FlowState(const Graph& g_new) : g(g_new) {
 		size_t edges_count = 0;
 		for (size_t i = 0; i < g.adjLists.size(); ++i) {
 			edges_count += g.adjLists[i].size();
@@ -40,37 +40,33 @@ struct FlowState {
 	}
 };
 
-size_t GetResidualThroughput(const Edge& edge, const std::vector<size_t>& flow) {
-	return edge.rev ? flow[edge.id] : edge.capacity - flow[edge.id];
-}
-
 size_t FindBlockingFlow(
 	size_t v, 
-	const Graph& g,
+	FlowState& flowState,
 	size_t flow,
 	std::vector<size_t>& adjPtrs,
-	std::vector<size_t>& blockFlow,
 	const std::vector<size_t>& distances
 ) 
 {
-	if (v == g.drain) {
+	if (v == flowState.g.drain) {
 		return flow;
 	}
 
-	while (adjPtrs[v] < g.adjLists[v].size()) {
-		auto edge = g.adjLists[v][adjPtrs[v]++];
-		size_t canPush = GetResidualThroughput(edge, blockFlow);
+	while (adjPtrs[v] < flowState.g.adjLists[v].size()) {
+		auto e = flowState.g.adjLists[v][adjPtrs[v]++];
+		size_t canPush = flowState.GetResidualThroughput(e);
+
 		if (canPush && distances[e.to] == distances[v] + 1) {
-			size_t pushed = FindBlockingFlow(e.to, g, std::min(flow, canPush), adjPtrs, blockFlow, distances);
+			size_t pushed = FindBlockingFlow(e.to, flowState, std::min(flow, canPush), adjPtrs, distances);
 
 			if (pushed == 0) {
 				continue;
 			}
 
 			if (e.rev) {
-				blockFlow[e.id] -= pushed;
+				flowState.flow[e.id] -= pushed;
 			} else {
-				blockFlow[e.id] += pushed;
+				flowState.flow[e.id] += pushed;
 			}
 			return pushed;
 		}
@@ -88,14 +84,13 @@ size_t DinicIteration(FlowState& flowState) {
 	*/
 
 	auto& g = flowState.g;
-	auto& flow = flowState.flow;
-	auto& totalFlow = flowState.totalFlow;
 
 	// 1---------------------------------------------------
 
-	std::vector<size_t> distances(g.size(), kMaximumLayers);
+	std::vector<size_t> distances(g.adjLists.size(), kMaximumLayers);
 	distances[g.sink] = 0;
-	std::queue<size_t> bfsQueue = {g.sink};
+	std::queue<size_t> bfsQueue;
+	bfsQueue.push(g.sink);
 
 	while (!bfsQueue.empty()) {
 		auto curv = bfsQueue.front();
@@ -112,10 +107,10 @@ size_t DinicIteration(FlowState& flowState) {
 
 	// 2----------------------------------------------------
 
-	std::vector<size_t> adjPtrs(g.size());
+	std::vector<size_t> adjPtrs(g.adjLists.size());
 
 	size_t pushedTotal = 0;
-	while (size_t pushed = FindBlockingFlow(g.s, g, kMaximumFlow, adjPtrs, flow, distances)) {
+	while (size_t pushed = FindBlockingFlow(g.sink, flowState, kMaximumFlow, adjPtrs, distances)) {
 		pushedTotal += pushed;
 	}
 
@@ -123,7 +118,7 @@ size_t DinicIteration(FlowState& flowState) {
 		return false;
 	}
 
-	totalFlow += pushedTotal;
+	flowState.totalFlow += pushedTotal;
 
 	return pushedTotal;
 }
@@ -135,7 +130,7 @@ FlowState DinicFindMaxFlow(const Graph& g) {
 }
 
 std::optional<Solution> Solve(const Problem& problem) {
-
+	return std::nullopt;
 }
 
 }
