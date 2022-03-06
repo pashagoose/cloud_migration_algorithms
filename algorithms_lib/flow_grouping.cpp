@@ -4,6 +4,15 @@
 
 namespace AlgoFlowGrouping {
 
+struct cmp_by_mem {
+	bool operator()(const VM& lhs, const VM& rhs) const {
+		if (lhs.mem != rhs.mem) {
+			return lhs.mem > rhs.mem;
+		}
+		return lhs.id < rhs.id;
+	}
+};
+
 constexpr size_t kMaximumLayers = 1e9;
 constexpr size_t kMaximumFlow = 1e9;
 
@@ -129,7 +138,7 @@ FlowState DinicFindMaxFlow(const Graph& g) {
 	return flowState;
 }
 
-std::optional<Solution> Solve(const Problem& problem) {
+std::optional<Solution> SolveImpl(const Problem& problem) {
 	// ONLY WORKS IF ALL servers' `max_in` ARE 1
 	/*
 		1) Build bipartite graph, where each server is respresented as two vertices in different parts.
@@ -144,33 +153,68 @@ std::optional<Solution> Solve(const Problem& problem) {
 	size_t servers_cnt = problem.server_specs.size();
 
 	std::vector<Server> servers;
+	std::vector<Server> servers_end_pos;
 	servers.reserve(servers_cnt);
+	servers_end_pos.reserve(servers_cnt);
 
 	for (size_t i = 0; i < servers_cnt; ++i) {
 		servers.emplace_back(problem.server_specs[i], i);
+		servers_end_pos.emplace_back(problem.server_specs[i], i);
 	}
-
-	size_t misplaced = 0;
 
 	for (size_t i = 0; i < problem.vms.size(); ++i) {
-		misplaced += (problem.start_position.vm_server[i] != problem.end_position.vm_server[i]);
 		servers[problem.start_position.vm_server[i]].ReceiveVM(problem.vms[i]);
 		servers[problem.start_position.vm_server[i]].CancelReceivingVM(problem.vms[i]);
+
+		servers_end_pos[problem.end_position.vm_server[i]].ReceiveVM(problem.vms[i]);
+		servers_end_pos[problem.end_position.vm_server[i]].CancelReceivingVM(problem.vms[i]);
 	}
 
-	std::vector<size_t> available_for_migration;
+	std::set<VM, cmp_by_mem> available_for_migration;
+	std::set<VM, cmp_by_mem> misplaced_vms;
 	std::vector<size_t> vm_pos = problem.start_position.vm_server;
 
 	auto recalculate = [&]() {
 		available_for_migration.clear();
-		misplaced = 0;
+		misplaced_vms.clear();
 
 		for (size_t i = 0; i < problem.vms.size(); ++i) {
 			if (problem.end_position.vm_server[i] != vm_pos[i]) {
-				++misplaced;
+				misplaced_vms.insert(problem.vms[i]);
 				if (servers[problem.end_position.vm_server[i]].CanFit(problem.vms[i])) {
-					available_for_migration.push_back(i);
+					available_for_migration.insert(problem.vms[i]);
 				}
+			}
+		}
+	};
+
+	auto perform_move = [&](size_t vm_id, size_t from, size_t to) {
+		vm_pos[vm_id] = to;
+
+		if (from == to) {
+			return;
+		}
+
+		servers[from].SendVM(problem.vms[vm_id]);
+		servers[to].ReceiveVM(problem.vms[vm_id]);
+		servers[from].CancelSendingVM(problem.vms[vm_id]);
+		servers[to].CancelReceivingVM(problem.vms[vm_id]);
+
+		for (auto vm_id : *servers_end_pos[from].GetRawVMSet()) {
+			if (
+				servers[from].CanFit(problem.vms[vm_id]) &&
+				misplaced_vms.contains(problem.vms[vm_id])
+			) {
+				available_for_migration.insert(problem.vms[vm_id]);
+			}
+		}
+
+		for (auto vm_id : *servers_end_pos[to].GetRawVMSet()) {
+			if (
+				available_for_migration.contains(problem.vms[vm_id]) &&
+				!servers[to].CanFit(problem.vms[vm_id])
+			) {
+				available_for_migration.erase(problem.vms[vm_id]);
 			}
 		}
 	};
@@ -185,12 +229,12 @@ std::optional<Solution> Solve(const Problem& problem) {
 		size_t edges_count = 0;
 		edge_vm_bijection.clear();
 
-		for (auto vm_id : available_for_migration) {
-			size_t from = vm_pos[vm_id], to = servers_cnt + problem.end_position.vm_server[vm_id];
+		for (const auto& vm : available_for_migration) {
+			size_t from = vm_pos[vm.id], to = servers_cnt + problem.end_position.vm_server[vm.id];
 			g.adjLists[from].push_back(Edge{from, to, 1, edges_count, false});
 			g.adjLists[to].push_back(Edge{to, from, 1, edges_count++, true});
 
-			edge_vm_bijection.push_back(vm_id);
+			edge_vm_bijection.push_back(vm.id);
 		}
 
 		for (size_t i = 0; i < servers_cnt; ++i) {
@@ -212,18 +256,71 @@ std::optional<Solution> Solve(const Problem& problem) {
 		return g;
 	};
 
+	auto cmp_vm_ids_by_mem = [&](size_t lhs, size_t rhs) {
+		if (problem.vms[lhs].mem != problem.vms[rhs].mem) {
+			return problem.vms[lhs].mem > problem.vms[rhs].mem;
+		}
+
+		return lhs < rhs;
+	};
+
 	Solution solution(problem.vms.size());
 	long double timer = 0;
 
-	while (misplaced != 0) {
-		LOG(INFO) << "Misplaced: " << misplaced;
+	recalculate();
 
-		recalculate();
-
+	while (!misplaced_vms.empty()) {
 		if (available_for_migration.empty()) {
-			// oops, break the cycle (usually get here when misplaced is about ~3)
-			LOG(INFO) << "need to break";
-			return std::nullopt;
+			// oops, break the cycle (usually get here when misplaced vms quantity is 2-10)
+			VM move_vm = *misplaced_vms.rbegin();
+
+			size_t dest_server = problem.end_position.vm_server[move_vm.id];
+
+			std::set<size_t>& raw_vms = *servers[dest_server].GetRawVMSet();
+
+			std::vector<size_t> vm_sorted_by_mem(raw_vms.begin(), raw_vms.end());
+			std::sort(vm_sorted_by_mem.begin(), vm_sorted_by_mem.end(), cmp_vm_ids_by_mem);
+			std::reverse(vm_sorted_by_mem.begin(), vm_sorted_by_mem.end());
+
+			size_t ptr_servers = 0;
+
+			for (auto vm_id : vm_sorted_by_mem) {
+				if (dest_server == problem.end_position.vm_server[vm_id]) {
+					continue;
+				}
+				// find buffer server
+				size_t iters = 0;
+				
+				while (iters != servers.size()) {
+					if (servers[ptr_servers].CanFit(problem.vms[vm_id]) && ptr_servers != dest_server) {
+						perform_move(vm_id, dest_server, ptr_servers);
+
+						solution.vm_movements[vm_id].push_back(
+							Movement{
+								.from = dest_server,
+								.to = ptr_servers,
+								.start_moment = timer,
+								.duration = problem.vms[vm_id].migration_time,
+								.vm_id = vm_id
+							}
+						);
+						timer += problem.vms[vm_id].migration_time;
+
+						break;
+					} else {
+						++iters;
+						ptr_servers = (ptr_servers + 1) % servers.size();
+					}
+				}
+
+				if (servers[dest_server].CanFit(move_vm)) {
+					break;
+				}
+
+				if (iters == servers.size()) {
+					return std::nullopt;
+				}
+			}
 		}
 
 		Graph g = build_graph();
@@ -249,12 +346,9 @@ std::optional<Solution> Solve(const Problem& problem) {
 						}
 					);
 
-					servers[vm_pos[vm_id]].SendVM(problem.vms[vm_id]);
-					servers[problem.end_position.vm_server[vm_id]].ReceiveVM(problem.vms[vm_id]);
-					servers[problem.end_position.vm_server[vm_id]].CancelReceivingVM(problem.vms[vm_id]);
-					servers[vm_pos[vm_id]].CancelSendingVM(problem.vms[vm_id]);
-
-					vm_pos[vm_id] = problem.end_position.vm_server[vm_id];
+					available_for_migration.erase(problem.vms[vm_id]);
+					misplaced_vms.erase(problem.vms[vm_id]);
+					perform_move(vm_id, vm_pos[vm_id], problem.end_position.vm_server[vm_id]);
 				}
 			}
 		}
@@ -263,6 +357,10 @@ std::optional<Solution> Solve(const Problem& problem) {
 	}
 
 	return solution;
+}
+
+std::optional<Solution> Solve(const Problem& problem) {
+	return Parallelizer::ParallelizeSolution(SolveImpl, problem);
 }
 
 }

@@ -18,22 +18,26 @@ int main(int argc, const char* argv[]) {
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
+    if (argc < 3) {
+    	std::cout << "Need path for dumping metrics\n";
+    	return 1;
+    }
 
     constexpr size_t tests = 100;
 
 	TestEnvironment test_env(42, 15, 100, 1000);
 
-	//DataSet::DataSet dataset = LoadTests(argv[1]);
+	DataSet::DataSet dataset = LoadTests(argv[1]);
 
-	//Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, AlgoFlowGrouping::Solve);
+	Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, AlgoFlowGrouping::Solve);
 
-	Metrics::MetricsSet measurements = test_env.RunTests(tests, AlgoFlowGrouping::Solve);
+	//Metrics::MetricsSet measurements = test_env.RunTests(tests, AlgoFlowGrouping::Solve);
 
 	LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
 
 	test_env.PrintMeasurements(std::cout);
 	//measurements.SerializeToOstream(&file);
-	/*std::string result;
+	std::string result;
 	google::protobuf::util::JsonPrintOptions options;
 	options.add_whitespace = true;
 	options.preserve_proto_field_names = true;
@@ -42,6 +46,6 @@ int main(int argc, const char* argv[]) {
 
 	std::ofstream fout(argv[2], std::ios::binary | std::ios::trunc | std::ios::out);
 	fout << result;
-	*/
+	
 	return 0;
 }
