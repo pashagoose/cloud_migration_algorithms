@@ -13,7 +13,7 @@ struct cmp_by_mem {
 	}
 };
 
-std::optional<Solution> Solve(const Problem& problem) {
+std::optional<Solution> Solve(const Problem& problem, AlgoStatMaker* statmaker) {
 	/*
 		M := (Set of misplaced VMs) is decreasing.
 		Keep A := (set of misplaced VMs that can move to their destination right now).

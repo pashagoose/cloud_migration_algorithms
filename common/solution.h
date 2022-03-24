@@ -74,3 +74,8 @@ private:
 	std::set<size_t> vms_;
 	ServerSpec spec_;
 };
+
+struct AlgoStats {
+	size_t cycle_breaks_;
+	// TODO: time measurement here;
+};

@@ -6,7 +6,7 @@
 #include <random>
 #include <utility>
 
-#include "solution.h"
+#include "../common/solution.h"
 
 class ITestGenerator {
 public:

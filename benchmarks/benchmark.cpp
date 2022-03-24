@@ -31,13 +31,8 @@ int main(int argc, const char* argv[]) {
 
 	Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, AlgoFlowGrouping::Solve);
 
-	//Metrics::MetricsSet measurements = test_env.RunTests(tests, AlgoFlowGrouping::Solve);
+	LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
 
-	//LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
-
-	//test_env.PrintMeasurements(std::cout);
-
-	//measurements.SerializeToOstream(&file);
 	std::string result;
 	google::protobuf::util::JsonPrintOptions options;
 	options.add_whitespace = true;

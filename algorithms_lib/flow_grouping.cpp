@@ -138,7 +138,7 @@ FlowState DinicFindMaxFlow(const Graph& g) {
 	return flowState;
 }
 
-std::optional<Solution> SolveImpl(const Problem& problem) {
+std::optional<Solution> SolveImpl(const Problem& problem, AlgoStatMaker* statmaker) {
 	// ONLY WORKS IF ALL servers' `max_in` ARE 1
 	/*
 		1) Build bipartite graph, where each server is respresented as two vertices in different parts.
@@ -359,8 +359,8 @@ std::optional<Solution> SolveImpl(const Problem& problem) {
 	return solution;
 }
 
-std::optional<Solution> Solve(const Problem& problem) {
-	return Parallelizer::ParallelizeSolution(SolveImpl, problem);
+std::optional<Solution> Solve(const Problem& problem, AlgoStatMaker* statmaker) {
+	return Parallelizer::ParallelizeSolution(SolveImpl, problem, statmaker);
 }
 
 }

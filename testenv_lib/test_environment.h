@@ -7,8 +7,9 @@
 #include <fstream>
 #include <string>
 
-#include "metrics.h"
+#include "../common/metrics.h"
 #include "test_generator.h"
+#include "algo_stat_maker.h"
 
 #include "../proto/test_case.pb.h"
 #include "../proto/metrics.pb.h"
@@ -19,6 +20,10 @@ DataSet::DataSet LoadTests(const std::string& path);
 
 class TestEnvironment {
 public:
+	using TestPredicateCallback = std::function<bool(const Problem&)>;
+	using AlgorithmCallback = std::function<std::optional<Solution>(const Problem&, AlgoStatMaker*)>;
+
+
 	TestEnvironment(
 		size_t seed = 42,
 		size_t diff_percentage_max = 15,
@@ -26,56 +31,10 @@ public:
 		size_t servers_quantity_max = 1000
 	);
 
-	template<class Algorithm>
-	Metrics::MetricsSet RunTests(size_t tests_count, Algorithm solver) {
-		// Return solved_cases
-		size_t solved_cases = 0;
-		Metrics::MetricsSet measurements;
+	Metrics::MetricsSet RunTests(size_t tests_count, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr);
 
-		for (size_t i = 0; i < tests_count; ++i) {
-			problem_ = generator_->Generate();
-			solution_ = solver(problem_);
-
-			// PrintTest(problem_);
-
-			if (solution_) {
-				CheckCorrectness();
-				CountMetrics(&measurements);
-				++solved_cases;
-			}
-		}
-
-		measurements.set_tests(tests_count);
-		measurements.set_solved(solved_cases);
-
-		return measurements;
-	}
-
-	template<class Algorithm>
-	Metrics::MetricsSet RunTestsFromDataSet(DataSet::DataSet dataset, Algorithm solver) {
-		size_t solved_cases = 0;
-		Metrics::MetricsSet measurements;
-
-		for (size_t i = 0; i < dataset.tests_size(); ++i) {
-			problem_ = ConvertTestCaseToProblem(dataset.tests(i));
-			solution_ = solver(problem_);
-
-			// PrintTest(problem_);
-
-			if (solution_) {
-				CheckCorrectness();
-				CountMetrics(&measurements);
-				++solved_cases;
-			}
-		}
-
-		measurements.set_tests(dataset.tests_size());
-		measurements.set_solved(solved_cases);
-
-		return measurements;
-	}
-
-	void GenerateAndDumpTests(const std::string& path, size_t test_count);
+	Metrics::MetricsSet RunTestsFromDataSet(DataSet::DataSet dataset, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr);
+	void GenerateAndDumpTests(const std::string& path, size_t test_count, TestPredicateCallback callback);
 
 	void PrintMeasurements(std::ostream& out) const;
 	void ClearMeasurements();
