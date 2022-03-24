@@ -36,10 +36,14 @@ public:
 	Metrics::MetricsSet RunTestsFromDataSet(DataSet::DataSet dataset, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr);
 	void GenerateAndDumpTests(const std::string& path, size_t test_count, TestPredicateCallback callback);
 
+	// returns bool indicating where this problem can be solved by algorithm or not
+	bool GetStatOnTest(const Problem& problem, AlgorithmCallback solver, AlgoStatMaker* statmaker);
+
 	void PrintMeasurements(std::ostream& out) const;
 	void ClearMeasurements();
 
 private:
+
 	void CheckCorrectness() const;
 	void CountMetrics(Metrics::MetricsSet* measurements);
 

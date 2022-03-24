@@ -24,8 +24,11 @@ int main(int argc, const char* argv[]) {
 
 	TestEnvironment test_env(42, 15, 500, 1000);
 
+	AlgoStatMaker statmaker;
+
 	test_env.GenerateAndDumpTests(argv[1], 100, [&](const Problem& testCase) -> bool {
-		return true;
+		test_env.GetStatOnTest(testCase, AlgoBaseline::Solve, &statmaker);
+		// TODO: judge by stats of baseline (for example baseline count number of cycles in it)
 	});
 	
 	return 0;
