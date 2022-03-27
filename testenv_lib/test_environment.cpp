@@ -153,7 +153,7 @@ Metrics::MetricsSet TestEnvironment::RunTestsFromDataSet(DataSet::DataSet datase
 }
 
 bool TestEnvironment::GetStatOnTest(const Problem& problem, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr) {
-	return solver(problem_, statmaker);
+	return static_cast<bool>(solver(problem, statmaker));
 }
 
 void TestEnvironment::CountMetrics(Metrics::MetricsSet* measurements) {
