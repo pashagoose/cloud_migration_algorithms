@@ -1,0 +1,44 @@
+#include <iostream>
+
+#include <glog/logging.h>
+
+#include "../testenv_lib/test_environment.h"
+#include "../testenv_lib/test_generator.h"
+#include "../algorithms_lib/algorithms.h"
+
+// PROTO
+#include "../proto/test_case.pb.h"
+#include "../proto/metrics.pb.h"
+
+#include "../common/solution.h"
+
+int main(int argc, const char* argv[]) {
+	FLAGS_logtostderr = true;
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+
+    if (argc < 2) {
+    	std::cout << "USAGE: ./test_dumper OUTPUT_TESTS_PATH";
+    	return 1;
+    }
+
+	TestEnvironment test_env(147, 15, 500, 1000);
+
+	AlgoStatMaker statmaker;
+
+	test_env.GenerateAndDumpTests(argv[1], 100, [&](const Problem& testCase) -> bool {
+		test_env.GetStatOnTest(testCase, AlgoBaseline::Solve, &statmaker);
+		// TODO: judge by stats of baseline (for example baseline count number of cycles in it)
+		 /*AlgoStat lastStat = statmaker.GetLastStat();
+
+		 if (lastStat.brokenCycles >= 2) {
+		 	LOG(INFO) << "Adding test with stat: " << lastStat.brokenCycles << " "
+		 		<< lastStat.migrationsBreakingCycles << ' ' << lastStat.totalMigrations;
+		 	return true;
+		 }*/
+
+		 return true;
+	});
+	
+	return 0;
+}

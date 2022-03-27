@@ -1,12 +1,13 @@
-#include "../testenv_lib/solution.h"
+#include "../common/solution.h"
+#include "../testenv_lib/algo_stat_maker.h"
 
 #include <map>
 
 namespace Parallelizer {
 
 	template<class Algo>
-	std::optional<Solution> ParallelizeSolution(Algo solver, const Problem& problem) {
-		std::optional<Solution> res = solver(problem);
+	std::optional<Solution> ParallelizeSolution(Algo solver, const Problem& problem, AlgoStatMaker* statmaker) {
+		std::optional<Solution> res = solver(problem, statmaker);
 
 		if (!res) {
 			return res;
