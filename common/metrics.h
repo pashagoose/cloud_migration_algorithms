@@ -25,6 +25,11 @@ public:
 	long double Evaluate(const Problem& task, const Solution& solution) override;
 };
 
+class TotalSteps final : public IMetric {
+public:
+	long double Evaluate(const Problem& task, const Solution& solution) override;
+};
+
 class MetricsAccumulator {
 public:
 	MetricsAccumulator(std::string_view name);

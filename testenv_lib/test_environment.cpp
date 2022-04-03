@@ -7,13 +7,15 @@ TestEnvironment::TestEnvironment(std::unique_ptr<ITestGenerator>&& test_generato
 	: accumulators_{
 		MetricsAccumulator("TotalTime"),
 		MetricsAccumulator("TotalMemoryMigration"),
-		MetricsAccumulator("SumMigrationTime")
+		MetricsAccumulator("SumMigrationTime"),
+		MetricsAccumulator("TotalSteps")
 	}
 	, generator_(std::move(test_generator))
 {
 	metrics_.emplace_back(std::make_unique<TotalTime>());
 	metrics_.emplace_back(std::make_unique<TotalMemoryMigration>());
 	metrics_.emplace_back(std::make_unique<SumMigrationTime>());
+	metrics_.emplace_back(std::make_unique<TotalSteps>());
 }
   
 void TestEnvironment::CheckCorrectness() const {
