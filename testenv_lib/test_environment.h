@@ -23,13 +23,7 @@ public:
 	using TestPredicateCallback = std::function<bool(const Problem&)>;
 	using AlgorithmCallback = std::function<std::optional<Solution>(const Problem&, AlgoStatMaker*)>;
 
-
-	TestEnvironment(
-		size_t seed = 42,
-		size_t diff_percentage_max = 15,
-		size_t servers_quantity_min = 100,
-		size_t servers_quantity_max = 1000
-	);
+	TestEnvironment(std::unique_ptr<ITestGenerator>&& test_generator);
 
 	Metrics::MetricsSet RunTests(size_t tests_count, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr);
 

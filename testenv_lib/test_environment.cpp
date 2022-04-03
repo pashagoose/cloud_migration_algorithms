@@ -3,18 +3,13 @@
 #include <stdexcept>
 #include <glog/logging.h>
 
-TestEnvironment::TestEnvironment(
-	size_t seed,
-	size_t diff_percentage_max,
-	size_t servers_quantity_min,
-	size_t servers_quantity_max
-)
+TestEnvironment::TestEnvironment(std::unique_ptr<ITestGenerator>&& test_generator)
 	: accumulators_{
 		MetricsAccumulator("TotalTime"),
 		MetricsAccumulator("TotalMemoryMigration"),
 		MetricsAccumulator("SumMigrationTime")
 	}
-	, generator_(std::make_unique<RealLifeGenerator>(seed, diff_percentage_max, servers_quantity_min, servers_quantity_max))
+	, generator_(std::move(test_generator))
 {
 	metrics_.emplace_back(std::make_unique<TotalTime>());
 	metrics_.emplace_back(std::make_unique<TotalMemoryMigration>());

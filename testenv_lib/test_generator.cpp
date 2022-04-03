@@ -8,7 +8,7 @@ RealLifeGenerator::RealLifeGenerator(
 	size_t diff_percentage_max,
 	size_t servers_quantity_min,
 	size_t servers_quantity_max,
-	std::vector<std::pair<size_t, size_t>>&& ratios
+	const std::vector<std::pair<size_t, size_t>>& ratios
 )
 	: diff_percentage_max_(diff_percentage_max)
 	, servers_quantity_min_(servers_quantity_min)
@@ -110,7 +110,6 @@ Problem RealLifeGenerator::Generate() {
 						mem,
 						vm_count++,
 						mem_mig_velocity * static_cast<long double>(mem)
-						// migration time equals to the memory size of VM for now
 					});
 				}
 			}
@@ -213,4 +212,61 @@ Problem RealLifeGenerator::Generate() {
 	result.server_specs.push_back(ServerSpec{512, 128, 1, 1});
 
 	return result;
+}
+
+CyclesGenerator::CyclesGenerator(
+	size_t seed,
+	size_t diff_percentage_max,
+	size_t diff_percentage_max_by_cycles,
+	size_t servers_quantity_min,
+	size_t servers_quantity_max,
+	const std::vector<std::pair<size_t, size_t>>& ratios
+)
+	: test_generator_(seed, diff_percentage_max, servers_quantity_min, servers_quantity_max, ratios)
+	, diff_percentage_cycles_(diff_percentage_max_by_cycles)
+	, rnd_(seed)
+{
+}
+
+Problem CyclesGenerator::Generate() {
+	Problem problem = test_generator_.Generate();
+
+	std::map<std::pair<size_t, size_t>, std::vector<VM>> vms_grouped_by_spec;
+
+	for (const VM& vm : problem.vms) {
+		vms_grouped_by_spec[{vm.mem, vm.cpu}].push_back(vm);
+	}
+
+	bool created_cycles = false;
+
+	for (auto& [vm_spec, vms] : vms_grouped_by_spec) {
+		vms.resize((double) diff_percentage_cycles_ / 100.0 * vms.size());
+
+		std::vector<size_t> positions;
+		for (const VM& vm : vms) {
+			positions.push_back(problem.end_position.vm_server[vm.id]);
+		}
+
+		if (positions.empty()) {
+			continue;
+		}
+
+		created_cycles = true;
+		
+		std::rotate(
+			positions.begin(), 
+			positions.begin() + RandomIntFromRange(0, positions.size() - 1, rnd_), 
+			positions.end()
+		);
+
+		for (size_t i = 0; i < positions.size(); ++i) {
+			problem.end_position.vm_server[vms[i].id] = positions[i];
+		}
+	}
+
+	if (!created_cycles) {
+		throw std::runtime_error("Could not create cycles in cycle generator");
+	}
+
+	return problem;
 }

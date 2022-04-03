@@ -10,7 +10,7 @@ def get_graphic_for_metrics(filename):
 	ys = []
 
 	for measurement in metrics['metrics']:
-		metric_id = 1
+		metric_id = 3
 		for metric in measurement['measurements']:
 			metric_id -= 1
 			if metric_id == 0:

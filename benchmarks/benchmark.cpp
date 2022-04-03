@@ -23,7 +23,7 @@ int main(int argc, const char* argv[]) {
     	return 1;
     }
 
-	TestEnvironment test_env(42, 15, 100, 1000);
+	TestEnvironment test_env(std::make_unique<RealLifeGenerator>(42, 15, 100, 1000));
 	DataSet::DataSet dataset = LoadTests(argv[2]);
 	TestEnvironment::AlgorithmCallback algo = AlgoBaseline::Solve;
 
