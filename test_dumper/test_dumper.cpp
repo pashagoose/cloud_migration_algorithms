@@ -17,18 +17,22 @@ int main(int argc, const char* argv[]) {
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
-    if (argc < 2) {
-    	std::cout << "USAGE: ./test_dumper OUTPUT_TESTS_PATH";
+    if (argc < 3) {
+    	std::cout << "USAGE: ./test_dumper GENERATOR_TYPE OUTPUT_TESTS_PATH";
     	return 1;
     }
 
-	TestEnvironment test_env(147, 15, 500, 1000);
+
+	TestEnvironment test_env(
+		std::string{argv[1]} == "cycles" ? 
+		std::unique_ptr<ITestGenerator>(std::make_unique<CyclesGenerator>(147, 25, 15, 500, 1000)) : 
+		std::unique_ptr<ITestGenerator>(std::make_unique<RealLifeGenerator>(147, 25, 500, 1000))
+	);
 
 	AlgoStatMaker statmaker;
 
-	test_env.GenerateAndDumpTests(argv[1], 100, [&](const Problem& testCase) -> bool {
+	test_env.GenerateAndDumpTests(argv[2], 100, [&](const Problem& testCase) -> bool {
 		test_env.GetStatOnTest(testCase, AlgoBaseline::Solve, &statmaker);
-		// TODO: judge by stats of baseline (for example baseline count number of cycles in it)
 		 /*AlgoStat lastStat = statmaker.GetLastStat();
 
 		 if (lastStat.brokenCycles >= 2) {

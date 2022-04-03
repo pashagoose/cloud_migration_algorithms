@@ -38,6 +38,16 @@ long double TotalMemoryMigration::Evaluate(const Problem& task, const Solution& 
 	return result;
 }
 
+long double TotalSteps::Evaluate(const Problem& task, const Solution& solution) {
+	long double result = 0;
+
+	for (const auto& movements : solution.vm_movements) {
+		result += movements.size();
+	}
+
+	return result;
+}
+
 MetricsAccumulator::MetricsAccumulator(std::string_view name)
 	: metric_name_(name) {}
 
