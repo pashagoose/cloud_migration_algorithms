@@ -52,7 +52,7 @@ public:
 	}
 
 	template<class Algorithm>
-	Metrics::MetricsSet RunTestsFromDataSet(DataSet::DataSet dataset, Algorithm solver) {
+	Metrics::MetricsSet RunTestsFromDataSet(const DataSet::DataSet& dataset, Algorithm solver) {
 		size_t solved_cases = 0;
 		Metrics::MetricsSet measurements;
 

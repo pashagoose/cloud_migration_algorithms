@@ -2,6 +2,7 @@ add_library(algorithms_lib STATIC
 	baseline.cpp
 	parallel_baseline.cpp
 	flow_grouping.cpp
+	lowerbound.cpp
 )
 
 target_link_libraries(algorithms_lib PUBLIC

@@ -19,3 +19,7 @@ namespace AlgoParallelBaseline {
 namespace AlgoFlowGrouping {
 	std::optional<Solution> Solve(const Problem& problem);
 }
+
+namespace AlgoLowerBound {
+	long double CountTimespanLowerBound(const Problem& problem);
+}
