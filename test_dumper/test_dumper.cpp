@@ -32,7 +32,7 @@ int main(int argc, const char* argv[]) {
 	AlgoStatMaker statmaker;
 
 	test_env.GenerateAndDumpTests(argv[2], 100, [&](const Problem& testCase) -> bool {
-		test_env.GetStatOnTest(testCase, AlgoBaseline::Solve, &statmaker);
+		//test_env.GetStatOnTest(testCase, AlgoBaseline::Solve, &statmaker);
 		 /*AlgoStat lastStat = statmaker.GetLastStat();
 
 		 if (lastStat.brokenCycles >= 2) {
