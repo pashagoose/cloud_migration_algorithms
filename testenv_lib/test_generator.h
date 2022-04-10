@@ -2,11 +2,12 @@
 
 #include <algorithm>
 #include <iostream>
+#include <map>
 #include <optional>
 #include <random>
 #include <utility>
 
-#include "solution.h"
+#include "../common/solution.h"
 
 class ITestGenerator {
 public:
@@ -27,7 +28,7 @@ public:
 		size_t diff_percentage_max = 15,
 		size_t servers_quantity_min = 100,
 		size_t servers_quantity_max = 1000,
-		std::vector<std::pair<size_t, size_t>>&& ratios = {{1, 1}, {1, 2}, {1, 4}}
+		const std::vector<std::pair<size_t, size_t>>& ratios = {{1, 1}, {1, 2}, {1, 4}}
 	);
 
 	Problem Generate() override;
@@ -37,5 +38,24 @@ private:
 	size_t servers_quantity_min_;
 	size_t servers_quantity_max_;
 	std::vector<std::pair<size_t, size_t>> ratios_;
-	std::mt19937 rnd_;// some random generator here
+	std::mt19937 rnd_;
+};
+
+class CyclesGenerator final : public ITestGenerator {
+public:
+	CyclesGenerator(
+		size_t seed = 42,
+		size_t diff_percentage_max = 15,
+		size_t diff_percentage_max_by_cycles = 8,
+		size_t servers_quantity_min = 100,
+		size_t servers_quantity_max = 1000,
+		const std::vector<std::pair<size_t, size_t>>& ratios = {{1, 1}, {1, 2}, {1, 4}}
+	);
+
+	Problem Generate() override;
+
+private:
+	RealLifeGenerator test_generator_;
+	size_t diff_percentage_cycles_;
+	std::mt19937 rnd_;
 };

@@ -3,22 +3,19 @@
 #include <stdexcept>
 #include <glog/logging.h>
 
-TestEnvironment::TestEnvironment(
-	size_t seed,
-	size_t diff_percentage_max,
-	size_t servers_quantity_min,
-	size_t servers_quantity_max
-)
+TestEnvironment::TestEnvironment(std::unique_ptr<ITestGenerator>&& test_generator)
 	: accumulators_{
 		MetricsAccumulator("TotalTime"),
 		MetricsAccumulator("TotalMemoryMigration"),
-		MetricsAccumulator("SumMigrationTime")
+		MetricsAccumulator("SumMigrationTime"),
+		MetricsAccumulator("TotalSteps")
 	}
-	, generator_(std::make_unique<RealLifeGenerator>(seed, diff_percentage_max, servers_quantity_min, servers_quantity_max))
+	, generator_(std::move(test_generator))
 {
 	metrics_.emplace_back(std::make_unique<TotalTime>());
 	metrics_.emplace_back(std::make_unique<TotalMemoryMigration>());
 	metrics_.emplace_back(std::make_unique<SumMigrationTime>());
+	metrics_.emplace_back(std::make_unique<TotalSteps>());
 }
   
 void TestEnvironment::CheckCorrectness() const {
@@ -105,6 +102,57 @@ void TestEnvironment::CheckCorrectness() const {
 	}
 }
 
+Metrics::MetricsSet TestEnvironment::RunTests(size_t tests_count, AlgorithmCallback solver, AlgoStatMaker* statmaker) {
+	// Return solved_cases
+	size_t solved_cases = 0;
+	Metrics::MetricsSet measurements;
+
+	for (size_t i = 0; i < tests_count; ++i) {
+		problem_ = generator_->Generate();
+		solution_ = solver(problem_, statmaker);
+
+		// PrintTest(problem_);
+
+		if (solution_) {
+			CheckCorrectness();
+			CountMetrics(&measurements);
+			++solved_cases;
+		}
+	}
+
+	measurements.set_tests(tests_count);
+	measurements.set_solved(solved_cases);
+
+	return measurements;
+}
+
+Metrics::MetricsSet TestEnvironment::RunTestsFromDataSet(DataSet::DataSet dataset, AlgorithmCallback solver, AlgoStatMaker* statmaker) {
+	size_t solved_cases = 0;
+	Metrics::MetricsSet measurements;
+
+	for (size_t i = 0; i < dataset.tests_size(); ++i) {
+		problem_ = ConvertTestCaseToProblem(dataset.tests(i));
+		solution_ = solver(problem_, statmaker);
+
+		// PrintTest(problem_);
+
+		if (solution_) {
+			CheckCorrectness();
+			CountMetrics(&measurements);
+			++solved_cases;
+		}
+	}
+
+	measurements.set_tests(dataset.tests_size());
+	measurements.set_solved(solved_cases);
+
+	return measurements;
+}
+
+bool TestEnvironment::GetStatOnTest(const Problem& problem, AlgorithmCallback solver, AlgoStatMaker* statmaker = nullptr) {
+	return static_cast<bool>(solver(problem, statmaker));
+}
+
 void TestEnvironment::CountMetrics(Metrics::MetricsSet* measurements) {
 	Metrics::Metrics* test_measurements = measurements->add_metrics();
 
@@ -129,24 +177,34 @@ void TestEnvironment::ClearMeasurements() {
 	}
 }	
 
-void TestEnvironment::GenerateAndDumpTests(const std::string& path, size_t test_count) {
+void TestEnvironment::GenerateAndDumpTests(const std::string& path, size_t test_count, TestPredicateCallback callback) {
 	std::ofstream file(path, std::ios::binary | std::ios::trunc | std::ios::out);
+
+	LOG(INFO) << "Generating and dumping dataset to: `" << path << "`, test_count: " << test_count; 
 
 	if (!file.is_open()) {
 		throw std::invalid_argument("Path `" + path + "` seems incorrect for dumping tests");
 	}
 
 	DataSet::DataSet dataset;
+	size_t generatedTests = 0;
+	size_t iterations = 0;
 
-	for (size_t i = 0; i < test_count; ++i) {
+	while (generatedTests != test_count) {
 		auto problem = generator_->Generate();
 
-		DataSet::TestCase* test = dataset.add_tests();
+		LOG(INFO) << "Iteration " << iterations++ << " of generating and checking tests on predicate";
 
-		test->set_id(i);
+		if (!callback(problem)) {
+			continue;
+		}
+
+		DataSet::TestCase test;
+
+		test.set_id(generatedTests);
 
 		for (size_t i = 0; i < problem.vms.size(); ++i) {
-			DataSet::VM* vm = test->add_vms();
+			DataSet::VM* vm = test.add_vms();
 
 			vm->set_cpu(problem.vms[i].cpu);
 			vm->set_mem(problem.vms[i].mem);
@@ -155,7 +213,7 @@ void TestEnvironment::GenerateAndDumpTests(const std::string& path, size_t test_
 		}
 
 		for (size_t i = 0; i < problem.server_specs.size(); ++i) {
-			DataSet::ServerSpec* spec = test->add_specs();
+			DataSet::ServerSpec* spec = test.add_specs();
 
 			spec->set_mem(problem.server_specs[i].mem);
 			spec->set_cpu(problem.server_specs[i].cpu);
@@ -163,13 +221,16 @@ void TestEnvironment::GenerateAndDumpTests(const std::string& path, size_t test_
 			spec->set_max_out(problem.server_specs[i].max_out);
 		}
 
-		DataSet::VMArrangement* start_pos = test->mutable_start_position();
-		DataSet::VMArrangement* end_pos = test->mutable_end_position();
+		DataSet::VMArrangement* start_pos = test.mutable_start_position();
+		DataSet::VMArrangement* end_pos = test.mutable_end_position();
 
 		for (size_t i = 0; i < problem.vms.size(); ++i) {
 			start_pos->add_vm_server(problem.start_position.vm_server[i]); 
 			end_pos->add_vm_server(problem.end_position.vm_server[i]);
 		}
+
+		*(dataset.add_tests()) = std::move(test);
+		++generatedTests;
 	}
 
 	dataset.SerializeToOstream(&file);

@@ -13,7 +13,7 @@ struct cmp_by_mem {
 	}
 };
 
-std::optional<Solution> Solve(const Problem& problem) {
+std::optional<Solution> Solve(const Problem& problem, AlgoStatMaker* statmaker) {
 	/*
 		M := (Set of misplaced VMs) is decreasing.
 		Keep A := (set of misplaced VMs that can move to their destination right now).
@@ -22,6 +22,8 @@ std::optional<Solution> Solve(const Problem& problem) {
 			by moving misplaced VMs from destination server to buffer, go greedy in order
 			of increasing VMs' memory. Move this minimal VM.
 	*/
+
+	AlgoStat stats;
 
 	long double timer = 0;
 	Solution solution(problem.vms.size());
@@ -77,6 +79,8 @@ std::optional<Solution> Solve(const Problem& problem) {
 			return;
 		}
 
+		++stats.totalMigrations;
+
 		servers[from].SendVM(problem.vms[vm_id]);
 		servers[to].ReceiveVM(problem.vms[vm_id]);
 		servers[from].CancelSendingVM(problem.vms[vm_id]);
@@ -120,6 +124,8 @@ std::optional<Solution> Solve(const Problem& problem) {
 			// break the cycle, use buffer
 			VM move_vm = *misplaced_vms.rbegin();
 
+			++stats.brokenCycles;
+
 			size_t dest_server = problem.end_position.vm_server[move_vm.id];
 
 			std::set<size_t>& raw_vms = *servers[dest_server].GetRawVMSet();
@@ -138,6 +144,7 @@ std::optional<Solution> Solve(const Problem& problem) {
 				size_t iters = 0;
 				while (iters != servers.size()) {
 					if (servers[ptr_servers].CanFit(problem.vms[vm_id]) && ptr_servers != dest_server) {
+						++stats.migrationsBreakingCycles;
 						perform_move(vm_id, dest_server, ptr_servers);
 						break;
 					} else {
@@ -151,6 +158,9 @@ std::optional<Solution> Solve(const Problem& problem) {
 				}
 
 				if (iters == servers.size()) {
+					if (statmaker) {
+						statmaker->AddStat(stats);
+					}
 					return std::nullopt;
 				}
 			}
@@ -167,6 +177,9 @@ std::optional<Solution> Solve(const Problem& problem) {
 		}
 	}
 
+	if (statmaker) {
+		statmaker->AddStat(stats);
+	}
 	return solution;
 }
 

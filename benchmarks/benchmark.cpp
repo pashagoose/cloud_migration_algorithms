@@ -18,26 +18,35 @@ int main(int argc, const char* argv[]) {
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
-    if (argc < 3) {
-    	std::cout << "Need path for dumping metrics\n";
+    if (argc < 4) {
+    	std::cout << "USAGE: ./benchmark ALGO_NAME DATASET_INPUT_PATH METRICS_JSON_OUTPUT_PATH\n"; 
     	return 1;
     }
 
-    constexpr size_t tests = 100;
+	TestEnvironment test_env(std::make_unique<RealLifeGenerator>(42, 15, 100, 1000));
+	DataSet::DataSet dataset = LoadTests(argv[2]);
+	TestEnvironment::AlgorithmCallback algo = AlgoBaseline::Solve;
 
-	TestEnvironment test_env(42, 15, 100, 1000);
+	std::cout << "Using algorithm: `";
+	if (std::string{argv[1]} == "flow_grouping") {
+		std::cout << argv[1];
+		algo = AlgoFlowGrouping::Solve;
+	} else if (std::string{argv[1]} == "parallel_baseline") {
+		std::cout << argv[1];
+		algo = AlgoParallelBaseline::Solve;
+	} else {
+		std::cout << "baseline";
+	}
 
-	DataSet::DataSet dataset = LoadTests(argv[1]);
+	std::cout << "`\n";
 
-	Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, AlgoFlowGrouping::Solve);
+// ------- Run ------------------------
 
-	//Metrics::MetricsSet measurements = test_env.RunTests(tests, AlgoFlowGrouping::Solve);
+	Metrics::MetricsSet measurements = test_env.RunTestsFromDataSet(dataset, algo, nullptr);
+	LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
 
-	//LOG(INFO) << "Solved: " << measurements.solved() << " out of " << measurements.tests();
+// ------------ Flush -----------------
 
-	//test_env.PrintMeasurements(std::cout);
-
-	//measurements.SerializeToOstream(&file);
 	std::string result;
 	google::protobuf::util::JsonPrintOptions options;
 	options.add_whitespace = true;
@@ -45,7 +54,9 @@ int main(int argc, const char* argv[]) {
 
 	google::protobuf::util::MessageToJsonString(measurements, &result, options);
 
-	std::ofstream fout(argv[2], std::ios::binary | std::ios::trunc | std::ios::out);
+	LOG(INFO) << "Flushing metrics to `" << argv[3] << "`";
+
+	std::ofstream fout(argv[3], std::ios::binary | std::ios::trunc | std::ios::out);
 	fout << result;
 	
 	return 0;
