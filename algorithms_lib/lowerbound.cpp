@@ -22,12 +22,10 @@ long double CountTimespanLowerBound(const Problem& problem) {
 
 	auto count_lowerbound = [](const std::vector<VM>& vms, size_t round_capacity) -> long double {
 		long double timespan_lowerbound = 0;
-		for (size_t j = 0; j < vms.size(); ++j) {
-			if (j % round_capacity + 1 == round_capacity
-				|| j + 1 == vms.size()) {
-				timespan_lowerbound += vms[j].migration_time;
-			}
+		for (const auto& vm : vms) {
+			timespan_lowerbound += vm.migration_time;
 		}
+		timespan_lowerbound /= round_capacity;
 		return timespan_lowerbound;
 	};
 
